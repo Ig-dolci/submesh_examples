@@ -1,5 +1,6 @@
 import math
 
+import pytest
 from firedrake import UnitSquareMesh
 
 from acoustic_solver import solve_acoustic_submesh
@@ -36,3 +37,17 @@ def test_solve_acoustic_submesh_reflection_clayton_reduces_norm():
     assert result_reflective["clayton_labels"] == ()
     assert result_with_clayton["clayton_labels"] == (2, 3, 4)
     assert result_with_clayton["solution_norm"] <= result_reflective["solution_norm"]
+
+
+@pytest.mark.parallel([1, 3])
+def test_solve_acoustic_submesh_parallel_one_step_finite_norm():
+    result = solve_acoustic_submesh(
+        mesh=UnitSquareMesh(8, 8),
+        source=1.0,
+        wave_speed=1.0,
+        dt=0.01,
+        t_end=0.01,
+        boundary_labels=(1, 2, 3, 4),
+    )
+    assert result["num_steps"] == 1
+    assert math.isfinite(result["solution_norm"])
