@@ -7,7 +7,7 @@ import math
 from numbers import Real
 from typing import Any
 
-__all__ = ["solve_acoustic_submesh"]
+__all__ = ["acoustic_solve", "solve_acoustic_submesh"]
 
 
 def _normalize_boundary_labels(boundary_labels: Iterable[Any]) -> tuple[Any, ...]:
@@ -64,7 +64,7 @@ def _coerce_wave_speed_pair(wave_speed: Any) -> tuple[Any, Any]:
     return wave_speed, wave_speed
 
 
-def solve_acoustic_submesh(
+def acoustic_solve(
     mesh: Any,
     source: Any,
     wave_speed: Any,
@@ -236,11 +236,30 @@ def solve_acoustic_submesh(
         "solution_norm": solution_norm,
     }
 
+
+def solve_acoustic_submesh(
+    mesh: Any,
+    source: Any,
+    wave_speed: Any,
+    dt: float,
+    t_end: float,
+    boundary_labels: Iterable[Any],
+) -> dict[str, Any]:
+    """Backward-compatible wrapper around :func:`acoustic_solve`."""
+    return acoustic_solve(
+        mesh=mesh,
+        source=source,
+        wave_speed=wave_speed,
+        dt=dt,
+        t_end=t_end,
+        boundary_labels=boundary_labels,
+    )
+
 if __name__ == "__main__":
     import firedrake
 
     mesh = firedrake.UnitIntervalMesh(10)
-    result = solve_acoustic_submesh(
+    result = acoustic_solve(
         mesh=mesh,
         source=1.0,
         wave_speed=1.0,
