@@ -1,4 +1,0 @@
-[2026-02-24T14:40:42.949Z] PRD generated: .loopy/PRD.md
-[2026-02-24T14:46:27.315Z] Plan updated before loop: .loopy/LOOPY_PLAN.md
-[2026-02-24T14:46:27.343Z] Plan updated with PRD refs defaults (auto-enforced).
-[2026-02-24T14:46:27.367Z] Plan ready. Run `loopy` to start build mode.
