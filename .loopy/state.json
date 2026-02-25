@@ -1,0 +1,9 @@
+{
+  "isAgentRunning": false,
+  "lastStatus": "stopped",
+  "updatedAt": "2026-02-25T12:27:03.982Z",
+  "startedAt": "2026-02-25T12:27:03.982Z",
+  "history": [
+    "2026-02-25T12:27:03.982Z stopped by signal"
+  ]
+}
