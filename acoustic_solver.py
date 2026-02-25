@@ -106,13 +106,13 @@ def solve_acoustic_submesh(
         EquationBC,
         Function,
         FunctionSpace,
-        Measure,
         SpatialCoordinate,
         Submesh,
+        conditional,
+        Measure,
         TestFunctions,
         TrialFunctions,
         assemble,
-        conditional,
         grad,
         inner,
         solve,
@@ -227,3 +227,17 @@ def solve_acoustic_submesh(
         "solution": state,
         "solution_norm": solution_norm,
     }
+
+if __name__ == "__main__":
+    import firedrake
+
+    mesh = firedrake.UnitIntervalMesh(10)
+    result = solve_acoustic_submesh(
+        mesh=mesh,
+        source=1.0,
+        wave_speed=1.0,
+        dt=0.1,
+        t_end=1.0,
+        boundary_labels=(999,),
+    )
+    print(f"Acoustic submesh solve completed with solution norm: {result['solution_norm']:.6e}")
