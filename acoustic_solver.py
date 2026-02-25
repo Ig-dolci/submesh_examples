@@ -215,6 +215,7 @@ def acoustic_solve(
         interface_markers,
         V=V.sub(0),
     )
+
     outfile = VTKFile("acoustic_submesh_solution.pvd")
     for step in range(num_steps):
         solve(a == L, state, bcs=[interface_bc])
@@ -222,6 +223,7 @@ def acoustic_solve(
         u_outer_prev.assign(solved_outer)
         u_inner_prev.assign(solved_inner)
         if step % 10 == 0:
+            print(f"  Completed step {step + 1} / {num_steps}")
             outfile.write(solved_outer)
 
     p_outer, p_inner = split(state)
@@ -275,7 +277,7 @@ if __name__ == "__main__":
         mesh=mesh,
         source=1.0,
         wave_speed=1.0,
-        dt=0.1,
+        dt=0.01,
         t_end=1.0,
         boundary_labels=(1, 2, 3, 4),
     )
