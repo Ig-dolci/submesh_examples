@@ -11,6 +11,7 @@ __all__ = ["acoustic_solve", "solve_acoustic_submesh"]
 
 
 def _normalize_boundary_labels(boundary_labels: Iterable[Any]) -> tuple[Any, ...]:
+    """Return boundary labels as a non-empty tuple."""
     if isinstance(boundary_labels, (str, bytes)):
         raise TypeError("boundary_labels must be an iterable of labels, not a string.")
     labels = tuple(boundary_labels)
@@ -20,6 +21,7 @@ def _normalize_boundary_labels(boundary_labels: Iterable[Any]) -> tuple[Any, ...
 
 
 def _dg0_family(mesh: Any) -> str:
+    """Choose the degree-zero discontinuous family for the mesh cell type."""
     cell = mesh.ufl_cell()
     cell_name_attr = cell.cellname
     cell_name = cell_name_attr() if callable(cell_name_attr) else cell_name_attr
@@ -29,11 +31,13 @@ def _dg0_family(mesh: Any) -> str:
 
 
 def _mesh_topological_dimension(mesh: Any) -> int:
+    """Read mesh topological dimension from callable or attribute APIs."""
     tdim_attr = mesh.topological_dimension
     return int(tdim_attr() if callable(tdim_attr) else tdim_attr)
 
 
 def _build_extended_domain_submesh(mesh: Any, label_value: int = 999) -> tuple[Any, int]:
+    """Mark x > 0.5 cells and build the labeled extended-domain submesh."""
     from firedrake import Function, FunctionSpace, SpatialCoordinate, Submesh, conditional
 
     DG0 = FunctionSpace(mesh, _dg0_family(mesh), 0)
@@ -48,6 +52,7 @@ def _build_extended_domain_submesh(mesh: Any, label_value: int = 999) -> tuple[A
 
 
 def _coerce_source_term(source: Any) -> Any:
+    """Convert scalar source inputs to Firedrake constants."""
     from firedrake import Constant
 
     if isinstance(source, Real):
@@ -56,6 +61,7 @@ def _coerce_source_term(source: Any) -> Any:
 
 
 def _coerce_wave_speed_pair(wave_speed: Any) -> tuple[Any, Any]:
+    """Return a pair of wave-speed coefficients for outer and inner domains."""
     from firedrake import Constant
 
     if isinstance(wave_speed, Real):
@@ -105,6 +111,12 @@ def acoustic_solve(
         raise ValueError("t_end must be a non-negative real number.")
     if isinstance(wave_speed, Real) and wave_speed <= 0:
         raise ValueError("wave_speed must be positive when provided as a scalar.")
+    mesh_topological_dimension = _mesh_topological_dimension(mesh)
+    if mesh_topological_dimension != 2:
+        raise ValueError(
+            "mesh.topological_dimension() must be 2 for acoustic_solve; "
+            f"got {mesh_topological_dimension}."
+        )
 
     from firedrake import (
         Constant,
@@ -258,13 +270,13 @@ def solve_acoustic_submesh(
 if __name__ == "__main__":
     import firedrake
 
-    mesh = firedrake.UnitIntervalMesh(10)
+    mesh = firedrake.RectangleMesh(8, 8, 1.0, 1.0, quadrilateral=True)
     result = acoustic_solve(
         mesh=mesh,
         source=1.0,
         wave_speed=1.0,
         dt=0.1,
         t_end=1.0,
-        boundary_labels=(999,),
+        boundary_labels=(1, 2, 3, 4),
     )
     print(f"Acoustic submesh solve completed with solution norm: {result['solution_norm']:.6e}")

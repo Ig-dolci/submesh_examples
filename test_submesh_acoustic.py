@@ -51,3 +51,20 @@ def test_solve_acoustic_submesh_parallel_one_step_finite_norm():
     )
     assert result["num_steps"] == 1
     assert math.isfinite(result["solution_norm"])
+
+
+def test_solve_acoustic_submesh_rejects_non_2d_mesh():
+    class FakeMesh3D:
+        @staticmethod
+        def topological_dimension():
+            return 3
+
+    with pytest.raises(ValueError, match=r"mesh\.topological_dimension\(\) must be 2"):
+        solve_acoustic_submesh(
+            mesh=FakeMesh3D(),
+            source=1.0,
+            wave_speed=1.0,
+            dt=0.01,
+            t_end=0.01,
+            boundary_labels=(1,),
+        )
