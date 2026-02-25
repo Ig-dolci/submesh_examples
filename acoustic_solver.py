@@ -83,16 +83,21 @@ def solve_acoustic_submesh(
     wave_speed : float or object
         Acoustic wave speed coefficient; scalars must be strictly positive.
     dt : float
-        Time-step size used by the implicit update.
+        Positive time-step size used by the implicit update; set ``dt == t_end`` for a
+        one-step solve.
     t_end : float
-        Final simulation time.
+        Non-negative final simulation time used with ``dt`` to compute
+        ``num_steps = max(1, ceil(t_end / dt))``.
     boundary_labels : Iterable[object]
-        Exterior boundary labels on the absorbing submesh where Clayton A1 terms are applied.
+        Candidate exterior boundary labels on the extended-domain submesh. Labels inferred as
+        the interface boundary are reserved for coupling, while the remaining labels are used
+        for Clayton A1 damping.
 
     Returns
     -------
     dict[str, object]
-        Solver state and metadata, including the extended-domain submesh and finite solution norm.
+        Solver state and metadata, including diagnostics ``solution_norm``,
+        ``interface_label``, and ``clayton_labels``.
     """
     if not isinstance(dt, Real) or dt <= 0:
         raise ValueError("dt must be a positive real number.")
