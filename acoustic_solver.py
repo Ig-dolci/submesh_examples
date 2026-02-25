@@ -189,17 +189,17 @@ def acoustic_solve(
     if interior_submesh.num_cells() <= 0:
         raise ValueError("Interior Submesh must contain at least one cell.")
 
-    outer_markers = tuple(int(marker) for marker in extended_submesh.exterior_facets.unique_markers)
+    outer_markers = tuple(sorted(int(marker) for marker in extended_submesh.exterior_facets.unique_markers))
     parent_boundary_markers = {int(marker) for marker in mesh.exterior_facets.unique_markers}
+    if not outer_markers:
+        raise ValueError("Extended-domain Submesh must expose boundary labels.")
     interface_markers = tuple(marker for marker in outer_markers if marker not in parent_boundary_markers)
     if not interface_markers:
-        if not outer_markers:
-            raise ValueError("Extended-domain Submesh must expose boundary labels.")
-        interface_markers = (max(outer_markers),)
+        raise ValueError("Extended-domain Submesh must expose at least one interface boundary label.")
 
     interface_marker_set = set(interface_markers)
-    outer_marker_set = set(outer_markers)
-    clayton_labels = tuple(label for label in labels if label in outer_marker_set and label not in interface_marker_set)
+    outer_non_interface_markers = set(outer_markers) - interface_marker_set
+    clayton_labels = tuple(label for label in labels if label in outer_non_interface_markers)
     num_steps = max(1, int(math.ceil(t_end / dt))) if t_end > 0 else 1
 
     V_outer = FunctionSpace(extended_submesh, "CG", 1)
