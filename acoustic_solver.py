@@ -7,7 +7,12 @@ import math
 from numbers import Real
 from typing import Any
 
-__all__ = ["acoustic_solve", "solve_acoustic_submesh"]
+__all__ = [
+    "acoustic_solve",
+    "solve_acoustic_submesh",
+    "evaluate_acoustic_forward_objective",
+    "optimize_acoustic_forward_objective",
+]
 
 
 def _normalize_boundary_labels(boundary_labels: Iterable[Any]) -> tuple[Any, ...]:
@@ -68,6 +73,42 @@ def _coerce_wave_speed_pair(wave_speed: Any) -> tuple[Any, Any]:
         c = Constant(float(wave_speed))
         return c, c
     return wave_speed, wave_speed
+
+
+def _normalize_source_collection(source: Any) -> tuple[Any, ...]:
+    """Normalize scalar or iterable source inputs to a non-empty tuple."""
+    if isinstance(source, Iterable) and not isinstance(source, (str, bytes)):
+        sources = tuple(source)
+        if not sources:
+            raise ValueError("source iterable must contain at least one entry.")
+        return sources
+    return (source,)
+
+
+def _normalize_observed_solution_norm(
+    observed_solution_norm: Any,
+    source_count: int,
+) -> tuple[float, ...]:
+    """Normalize one or many observed norms to one value per source."""
+    if isinstance(observed_solution_norm, Real):
+        values = (float(observed_solution_norm),)
+    elif isinstance(observed_solution_norm, Iterable) and not isinstance(observed_solution_norm, (str, bytes)):
+        values = tuple(float(value) for value in observed_solution_norm)
+        if not values:
+            raise ValueError("observed_solution_norm iterable must contain at least one value.")
+    else:
+        raise TypeError("observed_solution_norm must be a real number or iterable of real numbers.")
+
+    if any(not math.isfinite(value) for value in values):
+        raise ValueError("observed_solution_norm values must be finite.")
+
+    if len(values) == 1 and source_count > 1:
+        values = values * source_count
+    if len(values) != source_count:
+        raise ValueError(
+            "observed_solution_norm must provide one value per source or a single shared value."
+        )
+    return values
 
 
 def acoustic_solve(
@@ -268,6 +309,190 @@ def solve_acoustic_submesh(
         t_end=t_end,
         boundary_labels=boundary_labels,
     )
+
+
+def evaluate_acoustic_forward_objective(
+    mesh: Any,
+    source: Any,
+    wave_speed: float,
+    dt: float,
+    t_end: float,
+    boundary_labels: Iterable[Any],
+    observed_solution_norm: Any,
+) -> dict[str, Any]:
+    """Evaluate a forward-style least-squares objective from one or more source solves."""
+    if not isinstance(wave_speed, Real) or wave_speed <= 0:
+        raise ValueError("wave_speed must be a positive real number.")
+
+    sources = _normalize_source_collection(source)
+    observed_norms = _normalize_observed_solution_norm(observed_solution_norm, len(sources))
+    labels = _normalize_boundary_labels(boundary_labels)
+
+    objective = 0.0
+    residuals: list[float] = []
+    forward_results: list[dict[str, Any]] = []
+    for source_term, observed_norm in zip(sources, observed_norms):
+        forward_result = solve_acoustic_submesh(
+            mesh=mesh,
+            source=source_term,
+            wave_speed=float(wave_speed),
+            dt=dt,
+            t_end=t_end,
+            boundary_labels=labels,
+        )
+        residual = float(forward_result["solution_norm"]) - observed_norm
+        objective += 0.5 * residual * residual
+        residuals.append(float(residual))
+        forward_results.append(forward_result)
+
+    return {
+        "mesh": mesh,
+        "source": sources if len(sources) > 1 else sources[0],
+        "wave_speed": float(wave_speed),
+        "dt": float(dt),
+        "t_end": float(t_end),
+        "boundary_labels": tuple(labels),
+        "observed_solution_norm": tuple(observed_norms),
+        "residuals": tuple(residuals),
+        "objective": float(objective),
+        "forward_results": tuple(forward_results),
+    }
+
+
+def optimize_acoustic_forward_objective(
+    mesh: Any,
+    source: Any,
+    initial_wave_speed: float,
+    dt: float,
+    t_end: float,
+    boundary_labels: Iterable[Any],
+    observed_solution_norm: Any,
+    *,
+    learning_rate: float = 0.5,
+    max_iter: int = 20,
+    ftol: float = 1e-3,
+    objective_tol: float = 1e-8,
+    fd_step: float = 1e-2,
+    min_wave_speed: float = 1e-6,
+    max_backtracking_steps: int = 6,
+) -> dict[str, Any]:
+    """Run a forward objective optimization loop using finite-difference updates."""
+    if not isinstance(initial_wave_speed, Real) or initial_wave_speed <= 0:
+        raise ValueError("initial_wave_speed must be a positive real number.")
+    if not isinstance(learning_rate, Real) or learning_rate <= 0:
+        raise ValueError("learning_rate must be a positive real number.")
+    if not isinstance(fd_step, Real) or fd_step <= 0:
+        raise ValueError("fd_step must be a positive real number.")
+    if not isinstance(min_wave_speed, Real) or min_wave_speed <= 0:
+        raise ValueError("min_wave_speed must be a positive real number.")
+    if not isinstance(max_iter, int) or max_iter <= 0:
+        raise ValueError("max_iter must be a positive integer.")
+    if not isinstance(max_backtracking_steps, int) or max_backtracking_steps < 0:
+        raise ValueError("max_backtracking_steps must be a non-negative integer.")
+    if not isinstance(ftol, Real) or ftol < 0:
+        raise ValueError("ftol must be a non-negative real number.")
+    if not isinstance(objective_tol, Real) or objective_tol < 0:
+        raise ValueError("objective_tol must be a non-negative real number.")
+
+    sources = _normalize_source_collection(source)
+    observed_norms = _normalize_observed_solution_norm(observed_solution_norm, len(sources))
+    labels = _normalize_boundary_labels(boundary_labels)
+
+    wave_speed = max(float(initial_wave_speed), float(min_wave_speed))
+    current_eval = evaluate_acoustic_forward_objective(
+        mesh=mesh,
+        source=sources,
+        wave_speed=wave_speed,
+        dt=dt,
+        t_end=t_end,
+        boundary_labels=labels,
+        observed_solution_norm=observed_norms,
+    )
+    objective_history = [float(current_eval["objective"])]
+    wave_speed_history = [float(wave_speed)]
+    stop_reason = "max_iter"
+
+    if objective_history[-1] <= objective_tol:
+        stop_reason = "objective_tol"
+    else:
+        for _ in range(max_iter):
+            speed_plus = wave_speed + float(fd_step)
+            speed_minus = max(float(min_wave_speed), wave_speed - float(fd_step))
+
+            plus_eval = evaluate_acoustic_forward_objective(
+                mesh=mesh,
+                source=sources,
+                wave_speed=speed_plus,
+                dt=dt,
+                t_end=t_end,
+                boundary_labels=labels,
+                observed_solution_norm=observed_norms,
+            )
+            minus_eval = evaluate_acoustic_forward_objective(
+                mesh=mesh,
+                source=sources,
+                wave_speed=speed_minus,
+                dt=dt,
+                t_end=t_end,
+                boundary_labels=labels,
+                observed_solution_norm=observed_norms,
+            )
+
+            denom = speed_plus - speed_minus
+            gradient = 0.0 if denom == 0 else (plus_eval["objective"] - minus_eval["objective"]) / denom
+
+            step_scale = float(learning_rate)
+            previous_objective = float(current_eval["objective"])
+            candidate_eval = current_eval
+            candidate_wave_speed = wave_speed
+
+            for _ in range(max_backtracking_steps + 1):
+                trial_wave_speed = max(float(min_wave_speed), wave_speed - step_scale * float(gradient))
+                trial_eval = evaluate_acoustic_forward_objective(
+                    mesh=mesh,
+                    source=sources,
+                    wave_speed=trial_wave_speed,
+                    dt=dt,
+                    t_end=t_end,
+                    boundary_labels=labels,
+                    observed_solution_norm=observed_norms,
+                )
+                candidate_eval = trial_eval
+                candidate_wave_speed = trial_wave_speed
+                if trial_eval["objective"] <= previous_objective:
+                    break
+                step_scale *= 0.5
+
+            current_eval = candidate_eval
+            wave_speed = float(candidate_wave_speed)
+            objective_history.append(float(current_eval["objective"]))
+            wave_speed_history.append(float(wave_speed))
+
+            if objective_history[-1] <= objective_tol:
+                stop_reason = "objective_tol"
+                break
+
+            relative_change = abs(previous_objective - objective_history[-1]) / max(abs(previous_objective), 1.0)
+            if relative_change <= ftol:
+                stop_reason = "ftol"
+                break
+
+    return {
+        "mesh": mesh,
+        "source": sources if len(sources) > 1 else sources[0],
+        "dt": float(dt),
+        "t_end": float(t_end),
+        "boundary_labels": tuple(labels),
+        "observed_solution_norm": tuple(observed_norms),
+        "objective_history": tuple(objective_history),
+        "wave_speed_history": tuple(wave_speed_history),
+        "final_wave_speed": float(wave_speed_history[-1]),
+        "final_objective": float(objective_history[-1]),
+        "num_iterations": len(objective_history) - 1,
+        "stop_reason": stop_reason,
+        "forward_results": current_eval["forward_results"],
+    }
+
 
 if __name__ == "__main__":
     import firedrake
