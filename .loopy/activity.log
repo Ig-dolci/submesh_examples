@@ -1,0 +1,5 @@
+[2026-02-25T18:13:45.602Z] PRD generated: .loopy/PRD.md
+[2026-02-25T18:50:40.724Z] plan generation failed: invalid-plan-envelope: stdout must contain only a single BEGIN_LOOPY_PLAN...END_LOOPY_PLAN block (see .loopy/last_plan_output.txt)
+[2026-02-25T18:50:40.741Z] Plan updated before loop: .loopy/LOOPY_PLAN.md
+[2026-02-25T18:50:40.778Z] Plan updated with PRD refs defaults (auto-enforced).
+[2026-02-25T18:50:40.799Z] Plan ready. Run `loopy` to start build mode.
