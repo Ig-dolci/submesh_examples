@@ -106,23 +106,7 @@ def solve_acoustic_submesh(
     if isinstance(wave_speed, Real) and wave_speed <= 0:
         raise ValueError("wave_speed must be positive when provided as a scalar.")
 
-    from firedrake import (
-        Constant,
-        EquationBC,
-        Function,
-        FunctionSpace,
-        SpatialCoordinate,
-        Submesh,
-        conditional,
-        Measure,
-        TestFunctions,
-        TrialFunctions,
-        assemble,
-        grad,
-        inner,
-        solve,
-        split,
-    )
+    from firedrake import *
 
     labels = tuple(int(label) for label in _normalize_boundary_labels(boundary_labels))
     extended_submesh, extended_domain_label = _build_extended_domain_submesh(mesh)
@@ -202,12 +186,14 @@ def solve_acoustic_submesh(
         interface_markers,
         V=V.sub(0),
     )
-
+    outfile = VTKFile("acoustic_submesh_solution.pvd")
     for _ in range(num_steps):
         solve(a == L, state, bcs=[interface_bc])
         solved_outer, solved_inner = state.subfunctions
         u_outer_prev.assign(solved_outer)
         u_inner_prev.assign(solved_inner)
+        if outfile % 10 == 0:
+            outfile.write(state)
 
     p_outer, p_inner = split(state)
     norm_sq = assemble(inner(p_outer, p_outer) * dx_outer + inner(p_inner, p_inner) * dx_inner)
