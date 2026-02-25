@@ -160,7 +160,11 @@ Implement a Firedrake solver workflow aligned with the Full-Waveform Inversion (
 - [F2] Include source-time behavior consistent with the reference demo (Ricker wavelet) and support multiple sources/receivers.
 - [F3] Preserve current extended-domain submesh construction and coupling structure; Clayton damping must apply only on non-interface extended-boundary labels.
 - [F4] Preserve diagnostic outputs for interface/boundary behavior (`interface_label`, `clayton_labels`) and expose inversion diagnostics (objective history, iteration count).
-- [F5] Keep `solve_acoustic_submesh(...)` callable with existing argument shape and return keys used by current tests.
+- [F5] Freeze `solve_acoustic_submesh(...)` compatibility:
+  - Required call arguments remain `mesh`, `source`, `wave_speed`, `dt`, `t_end`, `boundary_labels` (no new required parameters).
+  - Return value remains a `dict` with keys: `mesh`, `extended_submesh`, `extended_domain_label`, `interior_submesh`, `interior_domain_label`, `source`, `wave_speed`, `dt`, `t_end`, `boundary_labels`, `clayton_labels`, `interface_label`, `num_steps`, `solution`, `solution_norm`.
+  - `boundary_labels`, `clayton_labels`, and `interface_label` remain tuple-valued diagnostics.
+  - Non-2D meshes continue to raise `ValueError` containing `mesh.topological_dimension() must be 2`.
 - [F6] Add deterministic tests for: non-negative misfit, objective decrease over optimization, and retained Clayton-vs-reflective norm behavior.
 
 ### Non-Functional
@@ -175,6 +179,7 @@ Implement a Firedrake solver workflow aligned with the Full-Waveform Inversion (
 
 ## Success Metrics
 - Misfit reduction: for a fixed small benchmark, `J_final <= 0.8 * J_initial` within at most 20 optimization iterations.
+- Optimizer termination: enforce stop-on-first of `ftol=1e-3` relative objective change, `J <= 1e-8`, or `max_iter=20`.
 - Boundary behavior consistency: reflective-vs-Clayton comparison continues to satisfy `solution_norm(clayton) <= solution_norm(reflective)` under equivalent setup.
 - Compatibility: all 4 tests in `test_submesh_acoustic.py` pass with unchanged external call signatures.
 
@@ -183,10 +188,10 @@ Implement a Firedrake solver workflow aligned with the Full-Waveform Inversion (
 - Adjoint integration complexity with submesh coupling → stage delivery (forward+misfit first, then gradient+optimizer) with checkpoints.
 - Boundary marker regressions → add explicit assertions for interface-marker and Clayton-label partitioning.
 
-## Open Questions
-- Should MVP include ensemble source parallelism (`Ensemble`) immediately, or start with single-source-loop execution?
-- What optimizer stop criteria are required for acceptance (`ftol`, max iterations, or absolute misfit threshold)?
-- Is synthetic observed data sufficient for MVP, or is file-provided observed data required now?
+## Confirmed MVP Decisions
+- Source parallelism: MVP uses a single-source sequential loop; defer `Ensemble` source parallelism.
+- Optimizer stopping: stop on first of `ftol=1e-3` relative objective change, `J <= 1e-8`, or `max_iter=20`.
+- Observed data source: synthetic observed data is sufficient for MVP.
 
 ## Assumptions
 - Target remains 2D-only because current solver explicitly enforces `mesh.topological_dimension() == 2`.

@@ -1,0 +1,6 @@
+{
+  "status": "pass",
+  "command": "pytest test_submesh_acoustic.py",
+  "summary": "Acoustic verify suite passed with norm-ordering and API-focused tests green.",
+  "evidence": "test_submesh_acoustic.py ....... [100%] | 7 passed in 9.38s"
+}
