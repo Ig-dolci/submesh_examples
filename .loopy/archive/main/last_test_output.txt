@@ -1,6 +1,0 @@
-{
-  "status": "pass",
-  "command": "python -c \"import inspect, acoustic_solver as m; d=inspect.getdoc(m.solve_acoustic_submesh) or \\\"\\\"; assert \\\"boundary\\\" in d.lower() and \\\"dt\\\" in d and \\\"solution_norm\\\" in d and \\\"interface_label\\\" in d and \\\"clayton_labels\\\" in d\"",
-  "summary": "Docstring acceptance check passed.",
-  "evidence": "<exited with exit code 0>"
-}
