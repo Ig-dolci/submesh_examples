@@ -19,6 +19,7 @@ def test_solve_acoustic_submesh_api_manufactured_one_step():
     assert result["num_steps"] == 1
     assert math.isfinite(result["solution_norm"])
     assert result["interface_label"] == (5,)
+    assert result["clayton_labels"] == (2, 3, 4)
 
 
 def test_solve_acoustic_submesh_reflection_clayton_reduces_norm():
@@ -34,9 +35,51 @@ def test_solve_acoustic_submesh_reflection_clayton_reduces_norm():
         **params,
     )
 
+    assert result_reflective["interface_label"] == (5,)
     assert result_reflective["clayton_labels"] == ()
+    assert result_with_clayton["interface_label"] == (5,)
     assert result_with_clayton["clayton_labels"] == (2, 3, 4)
     assert result_with_clayton["solution_norm"] <= result_reflective["solution_norm"]
+
+
+def test_solve_acoustic_submesh_mixed_labels_filter_interface_and_unknown():
+    result = solve_acoustic_submesh(
+        mesh=RectangleMesh(8, 8, 1.0, 1.0, quadrilateral=True),
+        source=1.0,
+        wave_speed=1.0,
+        dt=0.01,
+        t_end=0.01,
+        boundary_labels=(2, 5, 99),
+    )
+    assert result["interface_label"] == (5,)
+    assert result["clayton_labels"] == (2,)
+
+
+def test_solve_acoustic_submesh_rejects_invalid_boundary_label_inputs():
+    mesh = RectangleMesh(8, 8, 1.0, 1.0, quadrilateral=True)
+
+    with pytest.raises(ValueError, match=r"boundary_labels must contain at least one label\."):
+        solve_acoustic_submesh(
+            mesh=mesh,
+            source=1.0,
+            wave_speed=1.0,
+            dt=0.01,
+            t_end=0.01,
+            boundary_labels=(),
+        )
+
+    with pytest.raises(
+        TypeError,
+        match=r"boundary_labels must be an iterable of labels, not a string\.",
+    ):
+        solve_acoustic_submesh(
+            mesh=mesh,
+            source=1.0,
+            wave_speed=1.0,
+            dt=0.01,
+            t_end=0.01,
+            boundary_labels="bad_string",
+        )
 
 
 @pytest.mark.parallel([1, 3])
