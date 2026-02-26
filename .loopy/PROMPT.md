@@ -1,186 +1,233 @@
 # Loopy Plan Prompt
 
-Timestamp: 2026-02-26T12:43:30.797Z
+Timestamp: 2026-02-26T12:56:57.789Z
 
 You are in PLANNING mode.
 Goal: update the plan only. Do NOT implement anything. No code edits. No commits.
 
 ## Context
 ## Plan seed (PRD) (--generate-prd)
-● SQL: Create initial todos
-  └ 3 row(s) inserted. Last inserted row ID: 3.
-
 ● Read instruction_loopy.text
-  └ 12 lines read
+  └ 15 lines read
 
-● Glob "*.py" in /Users/ddolci/dev_code/submesh_examples
-  └ 10 files found
+✗ Create session plan file
+  $ cat > /Users/ddolci/.copilot/session-state/6cce8cb8-a8d6-4afe-9b94-0e4f7800cff4/plan.md
+  <<'EOF'
+  # Plan
+  1. Read source seed and repository structure.
+  2. Inspect relevant code/tests and recent git history....
+  Permission denied and could not request permission from user
 
-● Show recent commit history
-  $ git --no-pager log --oneline -20
+● Show recent git history
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager log --oneline -20
   └ 21 lines...
 
 ● List directory .
-  └ 16 files found
+  └ 14 files found
 
-● Read acoustic_solver.py
-  └ 194 lines read
+● Glob "**/*.py" in /Users/ddolci/dev_code/submesh_examples
+  └ 8 files found
 
-● Read test_acoustic_solver.py
-  └ 44 lines read
-
-● Grep "wave|source|clayton|submesh|inversion|extended|absorbing|A1" in *.py
+● Grep "solve_acoustic_submesh|Clayton|absorbing|Submesh|forward wave|source term|acoustic"
 (/Users/ddolci/dev_code/submesh_examples)
-  └ 5 lines found
+  └ 74 lines found
 
-● Todo started: analyze-seed
-
-✗ Run acoustic solver tests for baseline
-  $ pytest -q test_acoustic_solver.py
+✗ List tracked files
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager ls-files | wc -l && git --no-pager
+  ls-files | sed -n '1,120p'
   Permission denied and could not request permission from user
 
-● Todo queried:
+● Glob "**/*acoustic*.py" in /Users/ddolci/dev_code/submesh_examples
+  └ No matches found
 
-✗ Collect static baseline metrics
-  $ python -V && python - <<'PY'
-  import re, pathlib
-  p=pathlib.Path('/Users/ddolci/dev_code/submesh_examples/acoustic_solver.py')
-  s=p.read_text()
-  print('lines', len(s.splitlines()))...
-  Permission denied and could not request permission from user
-
-● Todo started: inspect-codebase
-
-● Read test_submesh_solve.py
-  └ 1 line read
-
-● Grep "solve_acoustic_submesh|_ricker_wavelet|EquationBC|clayton_labels|interface_label|Submesh" in
- *.py (/Users/ddolci/dev_code/submesh_examples)
-  └ 92 lines found
-
-● Todo completed: inspect-codebase
-
-● Todo started: draft-prd
-
-● Todo queried:
-
-● Read test_submesh_solve.py lines 420-490
-  └ 71 lines read
-
-● Glob
-"{README*,pyproject.toml,setup.py,setup.cfg,requirements*.txt,pytest.ini,tox.ini,*.yml,*.yaml}" in
+● Glob "**/*.{md,txt,rst,yml,yaml,toml,ini,cfg,pyproject}" in
 /Users/ddolci/dev_code/submesh_examples
   └ 1 file found
 
-● Create ~/.copilot/session-state/5669db9b-c6fd-47e4-8b30-08d8651b45a6/plan.md
-
-● List directory acoustic_solution
+● Grep "^def test_" in test_*.py (/Users/ddolci/dev_code/submesh_examples)
   └ 8 files found
+
+● Show git status short
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager status --short
+  └ 10 lines...
+
+● Read test_submesh_solve.py lines 1-260
+  └ 260 lines read
+
+● Read test_submesh_solve.py lines 430-560
+  └ 131 lines read
+
+● Read .pytest_cache/README.md
+  └ 8 lines read
 
 ● Read acoustic_solution.pvd
   └ 13 lines read
 
-● Grep "^def test_" (/Users/ddolci/dev_code/submesh_examples/test_acoustic_solver.py)
-  └ 1 file found
+● Count VTU snapshots
+  $ cd /Users/ddolci/dev_code/submesh_examples && ls acoustic_solution/*.vtu | wc -l
+  └ 2 lines...
 
-● Grep "^def test_" in test_*.py (/Users/ddolci/dev_code/submesh_examples)
-  └ 9 files found
+✗ Show deleted solver from HEAD
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager show HEAD:acoustic_solver.py | sed
+  -n '1,220p'
+  Permission denied and could not request permission from user
+
+✗ Show deleted acoustic test from HEAD
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager show HEAD:test_acoustic_solver.py |
+   sed -n '1,260p'
+  Permission denied and could not request permission from user
+
+● SQL: Initialize task todos
+  └ 2 row(s) inserted. Last inserted row ID: 2.
+
+● Inspect latest commit files
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager show --name-only --oneline -1
+  └ 8 lines...
+
+● Count Submesh usages
+  $ cd /Users/ddolci/dev_code/submesh_examples && rg -n "Submesh\(" test_*.py | wc -l && rg -n
+  "@pytest.mark.parallel" test_*.py | wc -l
+  └ 5 lines...
+
+● Summarize test file/test counts
+  $ cd /Users/ddolci/dev_code/submesh_examples && ls test_*.py | wc -l && rg "^def test_" test_*.py
+  | wc -l
+  └ 4 lines...
+
+● Grep "Submesh\(" in test_*.py (/Users/ddolci/dev_code/submesh_examples)
+  └ 8 files found
+
+● Grep "@pytest\.mark\.parallel" in test_*.py (/Users/ddolci/dev_code/submesh_examples)
+  └ 7 files found
+
+● Grep "from firedrake import \*" in test_*.py (/Users/ddolci/dev_code/submesh_examples)
+  └ 8 files found
+
+● Glob "acoustic_solution/*.vtu" in /Users/ddolci/dev_code/submesh_examples
+  └ 8 files found
+
+✗ History of acoustic solver path
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager log --oneline -- acoustic_solver.py
+   test_acoustic_solver.py | sed -n '1,20p'
+  Permission denied and could not request permission from user
+
+✗ List acoustic artifacts sizes
+  $ cd /Users/ddolci/dev_code/submesh_examples && ls -lh acoustic_solution.pvd
+  acoustic_solution/*.vtu | sed -n '1,20p'
+  Permission denied and could not request permission from user
+
+● Todo started: research-context
+
+● Todo queried:
+
+✗ web_fetch:
+https://raw.githubusercontent.com/devitocodes/devito/main/examples/seismic/abc_methods/04_habc.ipynb
+  Permission denied and could not request permission from user
+
+● web_fetch: https://www.firedrakeproject.org/demos/full_waveform_inversion.py.html
+  └ Contents of https://www.firedrakeproject.org/demos/full_waveform_inversion.py...
+
+● Get git status short
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager status --short
+  └ 10 lines...
 
 ● Todo completed: draft-prd
 
 ● Todo queried:
 
-# PRD: Forward Acoustic Wave Solver on Firedrake Submeshes
+# PRD: Forward Acoustic Submesh Solver with Clayton A1 ABC
 
 ## Problem Statement
-Define and stabilize a forward-only acoustic wave equation implementation (with tutorial-consistent source term), using Firedrake submeshes for physical vs extended domains and A1 Clayton absorbing boundaries, without adding inversion workflow scope.
+Implement a Firedrake-based forward-only acoustic wave solver that uses Submesh for physical/extended domains and Clayton A1 absorbing boundaries, preserving the tutorial’s source-term definition and excluding inversion logic.
 
 ## Current Baseline
-- Acoustic solver entry point: 1 public function (`solve_acoustic_submesh`) in `acoustic_solver.py` (source: file inspection with `view`).
-- Acoustic regression coverage: 3 tests in `test_acoustic_solver.py` (source: `rg "^def test_" test_acoustic_solver.py`).
-- Repository test footprint: 57 tests across `test_*.py` (source: `rg "^def test_" --count` on `test_*.py`).
-- Existing output snapshots: 8 VTU timesteps listed in `acoustic_solution.pvd` (`acoustic_solution_0.vtu` … `_7.vtu`) (source: `view` on `acoustic_solution/` and `.pvd`).
-- Current boundary/interface expectation: interface marker `(5,)` is asserted for rectangular baseline mesh (source: `test_acoustic_solver.py` and `test_submesh_solve.py` line with auto interface label 5).
-- Current solver constraints: 2D mesh only; positive `dt` and `wave_speed`; non-negative `t_end`; Clayton labels filtered to user-provided non-interface outer markers (source: `acoustic_solver.py`).
+- Acoustic solver Python modules in repo: **0** files matching `**/*acoustic*.py` (source: `glob`).
+- Existing acoustic artifacts: **8** VTU timesteps (`t=0..7`) referenced in `acoustic_solution.pvd` and present in `acoustic_solution/*.vtu` (source: `view` + `glob` + `ls ... | wc -l`).
+- Submesh-focused test coverage: **8** test files and **54** `def test_...` functions (source: `glob` + `rg` count).
+- Submesh API usage density: **57** `Submesh(...)` call sites in `test_*.py` (source: `rg` count).
+- Current working-tree regression signal: **2** deleted acoustic files (`acoustic_solver.py`, `test_acoustic_solver.py`) (source: `git status --short`).
+- Recent related history: prior commits reference acoustic solver API constraints and Clayton/interface behavior (e.g., `cd926a0`, `ba535f3`, `96b441c`, `9757c14`) (source: `git log --oneline -20`).
 
 ## Goals
-- Implement/retain a forward-only acoustic wave solve aligned with the requested tutorial scope (wave equation + source term only).
-- Use Firedrake submesh decomposition to represent physical and extended domains with explicit interface coupling.
-- Apply A1 Clayton boundary treatment only on eligible external boundaries of the extended domain.
-- Preserve deterministic diagnostics and compatibility with existing acoustic tests.
+- Deliver a forward-wave-only acoustic implementation aligned with the Firedrake FWI tutorial’s wave equation and source-term construction.
+- Model physical vs extended domains via Firedrake `Submesh` with explicit interface/boundary labeling.
+- Apply Clayton A1 absorbing boundary condition on designated outer boundaries.
+- Provide deterministic, automated tests validating API shape, boundary-label handling, and forward solve behavior.
 
 ## Non-Goals
-- Full-waveform inversion, objective/adjoint optimization, parameter updates, or gradient-based loops.
-- New meshing pipelines or external geometry preprocessing.
-- Generalizing beyond the current 2D solver path.
+- No full-waveform inversion loop, objective minimization, gradient/adjoint, or optimization updates.
+- No redesign of existing Submesh generic tests outside acoustic scope.
+- No change to source-wavelet form from tutorial (except parameter wiring).
 
 ## Users & Context
-- Primary user: numerical developer/researcher running Firedrake submesh examples locally.
-- Secondary user(s): test/CI maintainer validating acoustic behavior against regression tests.
-- Environment: internal Python/Firedrake scientific-computing workflow.
+- Primary user: Firedrake developer/research engineer implementing seismic forward modeling in this repo.
+- Secondary user(s): CI/test maintainers validating Submesh-acoustic behavior.
+- Environment: internal Python + Firedrake + pytest workflow (MPI-capable test context).
 
 ## Scope
 - In scope:
-  - Forward acoustic PDE assembly and time stepping.
-  - Tutorial-style source wavelet injection.
-  - Physical/extended domain split via `Submesh`.
-  - Interface continuity condition via `EquationBC`.
-  - A1 Clayton boundary contribution on selected labels.
-  - Output diagnostics and VTK snapshots.
+  - Forward acoustic PDE time-stepping implementation.
+  - Source term preserved from tutorial pattern (Ricker-driven forcing onto dual space / equivalent established representation).
+  - Submesh construction for physical/extended regions and interface-aware boundary partitioning.
+  - Clayton A1 ABC on selected outer labels.
+  - Unit/integration tests for API contract and basic physical sanity checks.
 - Out of scope:
-  - Inversion objective, misfit computation, adjoint equations.
-  - 3D support.
-  - UI/visualization tooling beyond existing VTK writes.
+  - Inversion objective, adjoint gradient, LBFGS or any optimizer.
+  - New visualization pipelines beyond existing artifact style.
+  - Broad refactors of non-acoustic Submesh examples.
 
 ## Data Sources
-- `instruction_loopy.text`: explicit problem seed and constraints.
-- `acoustic_solver.py`: current solver logic, API, validations, PDE terms, source and boundary handling.
-- `test_acoustic_solver.py`: expected acoustic API behavior and baseline assertions.
-- `test_submesh_solve.py`: reference submesh/interface coupling pattern and interface-label behavior.
-- `git log --oneline -20`: recent history showing acoustic/clayton/interface-focused changes.
-- `acoustic_solution.pvd` + `acoustic_solution/*.vtu`: existing generated timesteps and output cadence.
+- `instruction_loopy.text`: explicit task constraints (forward only, Submesh domains, Clayton A1).
+- `test_submesh_*.py`: established Submesh labeling/intersection/solver usage patterns.
+- `git log --oneline -20`: recent behavioral/API intent and potential regression clues.
+- `git status --short`: current deleted acoustic-file signal.
+- Firedrake tutorial page (`full_waveform_inversion.py` HTML): forward acoustic equation, weak form, and source-term pattern.
+- `acoustic_solution.pvd` + `acoustic_solution/*.vtu`: currently available output snapshot baseline.
 
 ## Requirements
 ### Functional
-- [F1] Provide a forward solver function that solves only the wave equation with source forcing (no inversion workflow).
-- [F2] Build two non-empty submeshes from a parent mesh to represent physical and extended regions.
-- [F3] Couple submesh solutions across their interface using an equation-based boundary condition.
-- [F4] Apply A1 Clayton absorbing terms only to user-selected outer boundary labels that are not the interface label(s).
-- [F5] Inject a tutorial-style source term combining temporal wavelet sampling and spatial source shape.
-- [F6] Return structured diagnostics including mesh objects, selected labels, step count, solution handle, and finite norm.
-- [F7] Preserve current API compatibility expected by `test_acoustic_solver.py`.
+- [F1] Provide a callable forward solver API (module-level function) that computes pressure field evolution over time and returns stable, documented outputs (at minimum final field and/or per-step snapshots).
+- [F2] Implement only the forward acoustic equation with zero initial displacement/velocity and no inversion control flow.
+- [F3] Preserve tutorial-consistent source-term semantics (Ricker time function driving spatial source representation) and expose source parameters (`frequency_peak`, location, amplitude, `dt`, `final_time`).
+- [F4] Build physical and extended domains using Firedrake `Submesh`; define/retain interface label semantics for coupling/boundary handling.
+- [F5] Apply Clayton A1 absorbing boundary condition on configured outer boundary labels; exclude interface boundaries from absorbing treatment.
+- [F6] Allow reflective fallback (no absorbing term) for comparison tests.
+- [F7] Add/restore automated tests that validate:
+  - API signature/return keys,
+  - boundary-label filtering,
+  - forward run executes and produces expected timestep count,
+  - absorbing vs reflective behavior ordering metric (e.g., lower boundary-reflection energy with Clayton).
 
 ### Non-Functional
-- [N1] Performance: complexity must scale with `num_steps = ceil(t_end/dt)` and avoid unnecessary per-step allocations.
-- [N2] Security/Privacy: no external network/data access; writes limited to local VTK artifacts.
-- [N3] Accessibility: deterministic, machine-readable diagnostics for agent-based validation (stable keys/types).
+- [N1] Performance: default test configuration must complete within CI-friendly runtime (small mesh / reduced timesteps mode).
+- [N2] Security/Privacy: no external network/data dependencies at runtime; inputs local and deterministic.
+- [N3] Accessibility: N/A for UI; code/test readability via clear parameter names and concise docstrings.
 
 ## User Stories (MVP)
-- As a Firedrake developer, I want a forward-only acoustic solver over submeshes so that I can study wave propagation with an extended absorbing domain.
-- As a test maintainer, I want stable interface/clayton label semantics so that regression tests detect behavioral drift.
-- As a researcher, I want tutorial-consistent source injection so that numerical behavior is comparable to reference examples.
+- As a Firedrake developer, I want a forward-only acoustic solver API so that I can run wave propagation without inversion machinery.
+- As a numerical developer, I want Submesh-based physical/extended domains so that absorbing boundaries can be applied on outer regions while preserving interface semantics.
+- As a test maintainer, I want deterministic tests for Clayton-vs-reflective behavior so that regressions are caught quickly.
 
 ## Success Metrics
-- All 3 acoustic regression tests in `test_acoustic_solver.py` pass, including interface-label and reflective-vs-clayton norm ordering checks.
-- Solver returns finite `solution_norm` for the baseline rectangular case used in tests.
-- Interface label behavior remains consistent with the established rectangular baseline expectation `(5,)`.
-- Generated output remains a valid timestep collection (currently 8 snapshots in existing artifact pattern).
+- Solver availability: 1 forward acoustic module + 1 test module present and discoverable by pytest in repo.
+- Correctness gate: 100% pass on acoustic-targeted tests in default CI mode.
+- Physics regression gate: absorbing configuration yields strictly improved boundary-reflection metric versus reflective baseline in defined benchmark case.
+- Output consistency: produced timestep artifact count equals `int(final_time/dt)+1` for test runs.
 
 ## Risks & Mitigations
-- Tutorial mismatch risk (source or PDE differs subtly) → lock formulas/terms to documented reference and codify with targeted regression assertions.
-- Boundary-label ambiguity risk across meshes → keep explicit partition logic and test interface/clayton label filtering.
-- Scope creep into inversion logic → enforce strict non-goal and keep only forward solve path in API and docs.
+- Boundary-label misclassification (interface vs outer) → Reuse proven Submesh label filtering patterns from existing solver tests and add explicit tests.
+- Source-term drift from tutorial → Encode formula directly from tutorial reference and freeze with unit checks on sampled values.
+- Runtime instability/CI slowness → Provide reduced-size fast-test parameter set and separate heavier validation path.
 
 ## Open Questions
-- Which exact tutorial source expression (temporal and spatial components) is the normative reference if multiple variants exist in the cited materials?
-- Should source forcing be applied strictly on the physical submesh, or configurable between physical/extended domains?
-- Is VTK write cadence (currently every 10 steps) a required behavior or an implementation detail?
+- Which exact public API name/file should be canonical now (`acoustic_solver.py`/`solve_acoustic_submesh`) given current working-tree deletions?
+- Should Clayton A1 be mandatory default or opt-in via boundary label list?
+- What reflection metric threshold should be enforced for pass/fail across platforms?
 
 ## Assumptions
-- The intended deliverable is limited to forward modeling because `instruction_loopy.text` explicitly repeats “keep only the wave equation and source term.”
-- A 2D-only implementation is acceptable because current solver and tests enforce topological dimension 2.
-- Existing API shape should remain stable because recent commits and tests emphasize compatibility constraints around `solve_acoustic_submesh(...)`.
-- Runtime wall-clock and numerical baseline values were not added as pass/fail criteria because available evidence in this task is static code/tests/history and artifact files, not executable Firedrake test runs in this environment.
+- Prior acoustic files were intentionally part of expected scope and should be restored/replaced, because recent commit history references them while working tree shows deletion.
+- Devito extended-domain example is guidance for domain layout only (not a required numerical discretization match), because direct notebook fetch was unavailable in this environment.
+- Existing Firedrake/pytest infrastructure in this repo is the authoritative convention for implementation/testing patterns.
 
 
 
@@ -230,20 +277,20 @@ git:
   commit_message: 'loopy: {change_type} {task_summary}'
 phase_defaults:
   stop_on: all_checked
-  test_command: pytest -q test_acoustic_solver.py
+  test_command: pytest -q
 phases:
-  - id: tighten-forward-solver
-    title: Tighten forward solver
+  - id: implement-forward-solver
+    title: Implement forward solver
     stop_on: all_checked
-    test_command: pytest -q test_acoustic_solver.py
-  - id: align-acoustic-regressions
-    title: Align acoustic regressions
+    test_command: pytest -q
+  - id: add-acoustic-regression-tests
+    title: Add acoustic tests
     stop_on: tests_pass
     test_command: pytest -q test_acoustic_solver.py
-  - id: verify-submesh-compatibility
-    title: Verify submesh compatibility
+  - id: repo-validation
+    title: Validate integration
     stop_on: tests_pass
-    test_command: pytest -q test_submesh_solve.py
+    test_command: pytest -q
 prd_refs_defaults:
   - section: Problem Statement
   - section: Current Baseline
@@ -255,14 +302,13 @@ prd_refs_defaults:
 
 # Plan
 
-## Phase: tighten-forward-solver
-<!-- loopy:phase tighten-forward-solver -->
+## Phase: implement-forward-solver
+<!-- loopy:phase implement-forward-solver -->
 
-- [ ] implement: update `acoustic_solver.py::solve_acoustic_submesh` to keep a strict forward-only path (wave equation + source term) and remove any inversion-oriented branches/outputs if present — Acceptance: function body contains no objective/adjoint/gradient update logic and returns the existing diagnostics contract.
-- [ ] update: enforce boundary-label selection in `acoustic_solver.py::solve_acoustic_submesh` so A1 Clayton terms are applied only to user-provided outer labels excluding `interface_label`/`interface_labels` — Acceptance: code explicitly filters interface labels from Clayton label list before boundary term assembly.
-- [ ] update: keep interface coupling in `acoustic_solver.py` on submesh interface via `EquationBC` for both submesh unknowns — Acceptance: variational form includes `EquationBC`-based continuity constraint tied to the computed interface marker(s).
-- [ ] verify: confirm tutorial-style source injection path in `acoustic_solver.py` uses temporal wavelet sampling (e.g., `_ricker_wavelet`) multiplied by spatial source shape inside the time loop — Acceptance: source term assembly shows temporal*spatial composition and is called every step.
-- [ ] update: normalize diagnostics emitted by `solve_acoustic_submesh` to stable keys (`mesh`, submesh handles, interface/clayton labels, `num_steps`, solution handle, `solution_norm`) — Acceptance: returned mapping contains these keys with finite `solution_norm` computation.
+- [ ] add: create `acoustic_solver.py` with public `solve_acoustic_submesh(...)` forward-only API (no inversion/adjoint code paths) and documented return structure — Acceptance: `rg -n "^def solve_acoustic_submesh\(" acoustic_solver.py` returns exactly one match and `rg -n "adjoint|LBFGS|optimi" acoustic_solver.py` returns no matches.
+- [ ] implement: add Submesh domain construction in `acoustic_solver.py` that separates physical vs extended meshes and identifies interface labels before boundary treatment — Acceptance: file contains explicit `Submesh(` usage and logic that excludes interface labels from outer-boundary absorbing sets.
+- [ ] implement: add Clayton A1 absorbing boundary contribution in the forward weak form in `acoustic_solver.py`, gated by absorbing-boundary labels with reflective fallback — Acceptance: with empty absorbing label list the absorbing term path is disabled, and with non-empty labels it is enabled, verified by targeted tests.
+- [ ] implement: preserve tutorial-style Ricker source forcing in `acoustic_solver.py` with exposed parameters (`frequency_peak`, source location, amplitude, `dt`, `final_time`) — Acceptance: source term is parameterized by those names and tests confirm time-varying values and frequency sensitivity.
 
 ## Guardrails
 # Loopy Guardrails

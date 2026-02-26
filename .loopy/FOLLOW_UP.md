@@ -3,5 +3,4 @@
 Items below require future data or human action after the automated plan completes.
 Review and execute these manually once the prerequisite conditions are met.
 
-- [ ] After Firedrake-enabled CI/environment access is available, execute full `pytest -q` for all `test_*.py` and confirm no regressions outside acoustic/submesh slices.
-- [ ] After identifying the canonical tutorial variant, validate temporal/spatial source expression in `acoustic_solver.py` against that reference and update tests if formula constants differ.
+- [ ] After 10+ successful CI runs on main, compare median runtime of `pytest -q test_acoustic_solver.py` against the pre-merge baseline and investigate if it regresses by more than 20%.
