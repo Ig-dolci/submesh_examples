@@ -10,15 +10,14 @@ def solve_acoustic_submesh(
     *,
     dt: float,
     final_time: float,
+    amplitude: float = 1.0,
+    source_location: tuple[float, float] = (0.5, 0.5),
     mesh: Any | None = None,
     physical_cell_label: int = 100,
     extended_cell_label: int = 101,
     outer_boundary_labels: tuple[int, ...] = (1, 2, 3, 4),
     interface_labels: tuple[int, ...] | None = None,
     frequency_peak: float = 1.0,
-    source_amplitude: float = 1.0,
-    source_x: float = 0.5,
-    source_y: float = 0.5,
     c: float = 1.0,
 ) -> dict[str, Any]:
     """Run a forward-only acoustic time march and return simulation data.
@@ -40,9 +39,9 @@ def solve_acoustic_submesh(
         from absorbing-boundary treatment.
     frequency_peak:
         Peak frequency for the Ricker wavelet forcing.
-    source_amplitude:
+    amplitude:
         Amplitude multiplier for the source term.
-    source_x, source_y:
+    source_location:
         Source location metadata retained in the returned payload.
     c:
         Wave speed used in the simple scalar update.
@@ -96,7 +95,7 @@ def solve_acoustic_submesh(
 
     for t in time_values[1:]:
         arg = math.pi * frequency_peak * (t - t0)
-        ricker = source_amplitude * (1.0 - 2.0 * arg * arg) * math.exp(-(arg * arg))
+        ricker = amplitude * (1.0 - 2.0 * arg * arg) * math.exp(-(arg * arg))
         source_values.append(ricker)
         boundary_contribution = (
             dt * clayton_a1_scale * (pressure_curr - pressure_prev) if absorbing_term_enabled else 0.0
@@ -131,8 +130,8 @@ def solve_acoustic_submesh(
             "outer_boundary_labels": outer_boundary_labels,
             "interface_labels": tuple(sorted(inferred_interface_labels)),
             "frequency_peak": frequency_peak,
-            "source_amplitude": source_amplitude,
-            "source_location": (source_x, source_y),
+            "amplitude": amplitude,
+            "source_location": source_location,
             "c": c,
         },
     }
