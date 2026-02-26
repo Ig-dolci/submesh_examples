@@ -1,137 +1,89 @@
-"""Forward acoustic solver utilities."""
+import os
 
-from __future__ import annotations
+import finat
+import numpy as np
+from firedrake import *
+from firedrake.adjoint import *
+from pyadjoint.reduced_functional_numpy import ReducedFunctionalNumPy
+from scipy.optimize import minimize as scipy_minimize
 
-import math
-from typing import Any
+
+def ricker_wavelet(t, fs, amp=1.0):
+    ts = 1.5
+    t0 = t - ts * np.sqrt(6.0) / (np.pi * fs)
+    omega2 = (2.0 * np.pi * fs) * (2.0 * np.pi * fs)
+    return amp * (1.0 - 0.5 * omega2 * t0 * t0) * np.exp(-0.25 * omega2 * t0 * t0)
 
 
-def solve_acoustic_submesh(
-    *,
-    dt: float,
-    final_time: float,
-    amplitude: float = 1.0,
-    source_location: tuple[float, float] = (0.5, 0.5),
-    mesh: Any | None = None,
-    physical_cell_label: int = 100,
-    extended_cell_label: int = 101,
-    outer_boundary_labels: tuple[int, ...] = (1, 2, 3, 4),
-    interface_labels: tuple[int, ...] | None = None,
-    frequency_peak: float = 1.0,
-    c: float = 1.0,
-) -> dict[str, Any]:
-    """Run a forward-only acoustic time march and return simulation data.
+def wave_equation_solver(c, source_function, dt, V):
+    u = TrialFunction(V)
+    v = TestFunction(V)
+    u_np1 = Function(V)
+    u_n = Function(V)
+    u_nm1 = Function(V)
 
-    Parameters
-    ----------
-    dt:
-        Time increment per step.
-    final_time:
-        End time of the simulation.
-    mesh:
-        Optional parent mesh used to build physical/extended submeshes.
-    physical_cell_label, extended_cell_label:
-        Cell labels used to extract physical and extended Submesh domains.
-    outer_boundary_labels:
-        Parent boundary labels eligible for absorbing treatment.
-    interface_labels:
-        Interface labels between physical/extended domains. These are removed
-        from absorbing-boundary treatment.
-    frequency_peak:
-        Peak frequency for the Ricker wavelet forcing.
-    amplitude:
-        Amplitude multiplier for the source term.
-    source_location:
-        Source location metadata retained in the returned payload.
-    c:
-        Wave speed used in the simple scalar update.
-
-    Returns
-    -------
-    dict
-        A dictionary with the following keys:
-        - ``time_values``: list of simulation times (including t=0).
-        - ``source_values``: list of Ricker source values at each time.
-        - ``pressure_trace``: list of forward pressure values per time step.
-        - ``final_pressure``: final pressure scalar.
-        - ``parameters``: normalized input parameters used for the run.
-        - ``domain``: submesh metadata including interface and absorbing labels.
-    """
-    if dt <= 0.0:
-        raise ValueError("dt must be positive")
-    if final_time < 0.0:
-        raise ValueError("final_time must be non-negative")
-    if frequency_peak <= 0.0:
-        raise ValueError("frequency_peak must be positive")
-    if not outer_boundary_labels:
-        raise ValueError("outer_boundary_labels must be non-empty")
-
-    steps = int(round(final_time / dt))
-    time_values = [n * dt for n in range(steps + 1)]
-    inferred_interface_labels = set(interface_labels or ())
-    if not inferred_interface_labels:
-        inferred_interface_labels.add(max(outer_boundary_labels) + 1)
-    absorbing_boundary_labels = tuple(
-        label for label in outer_boundary_labels if label not in inferred_interface_labels
+    quad_rule = finat.quadrature.make_quadrature(
+        V.finat_element.cell, V.ufl_element().degree(), "KMV"
     )
-    absorbing_term_enabled = bool(absorbing_boundary_labels)
-    clayton_a1_scale = c * float(len(absorbing_boundary_labels))
 
-    physical_mesh = None
-    extended_mesh = None
-    if mesh is not None:
-        from firedrake import Submesh
+    m = 1 / (c * c)
+    time_term = m * (u - 2.0 * u_n + u_nm1) / Constant(dt**2) * v * dx(scheme=quad_rule)
+    a = dot(grad(u_n), grad(v)) * dx(scheme=quad_rule)
+    F = time_term + a
 
-        dim = mesh.topological_dimension
-        physical_mesh = Submesh(mesh, dim, physical_cell_label, name="physical_mesh")
-        extended_mesh = Submesh(mesh, dim, extended_cell_label, name="extended_mesh")
+    lin_var = LinearVariationalProblem(lhs(F), rhs(F) + source_function, u_np1)
+    solver_parameters = {"mat_type": "matfree", "ksp_type": "preonly", "pc_type": "jacobi"}
+    solver = LinearVariationalSolver(lin_var, solver_parameters=solver_parameters)
+    return solver, u_np1, u_n, u_nm1
 
-    pressure_prev = 0.0
-    pressure_curr = 0.0
-    source_values: list[float] = []
-    pressure_trace: list[float] = [pressure_curr]
-    absorbing_contribution_trace: list[float] = [0.0]
-    t0 = 1.5 / frequency_peak
 
-    for t in time_values[1:]:
-        arg = math.pi * frequency_peak * (t - t0)
-        ricker = amplitude * (1.0 - 2.0 * arg * arg) * math.exp(-(arg * arg))
-        source_values.append(ricker)
-        boundary_contribution = (
-            dt * clayton_a1_scale * (pressure_curr - pressure_prev) if absorbing_term_enabled else 0.0
-        )
-        pressure_next = 2.0 * pressure_curr - pressure_prev + (dt * c) ** 2 * ricker - boundary_contribution
-        pressure_prev, pressure_curr = pressure_curr, pressure_next
-        pressure_trace.append(pressure_curr)
-        absorbing_contribution_trace.append(boundary_contribution)
+def main():
+    M = 1
+    my_ensemble = Ensemble(COMM_WORLD, M)
 
-    if not source_values:
-        source_values = [0.0]
+    num_sources = my_ensemble.ensemble_comm.size
+    source_number = my_ensemble.ensemble_comm.rank
 
-    return {
-        "time_values": time_values,
-        "source_values": source_values,
-        "pressure_trace": pressure_trace,
-        "absorbing_contribution_trace": absorbing_contribution_trace,
-        "final_pressure": pressure_curr,
-        "domain": {
-            "physical_mesh": physical_mesh,
-            "extended_mesh": extended_mesh,
-            "interface_labels": tuple(sorted(inferred_interface_labels)),
-            "outer_boundary_labels": outer_boundary_labels,
-            "absorbing_boundary_labels": absorbing_boundary_labels,
-            "absorbing_term_enabled": absorbing_term_enabled,
-        },
-        "parameters": {
-            "dt": dt,
-            "final_time": final_time,
-            "physical_cell_label": physical_cell_label,
-            "extended_cell_label": extended_cell_label,
-            "outer_boundary_labels": outer_boundary_labels,
-            "interface_labels": tuple(sorted(inferred_interface_labels)),
-            "frequency_peak": frequency_peak,
-            "amplitude": amplitude,
-            "source_location": source_location,
-            "c": c,
-        },
-    }
+    dt = 0.002
+    final_time = 1.0
+    nx, ny = 80, 80
+    ftol = 1e-2
+
+    mesh = UnitSquareMesh(nx, ny, comm=my_ensemble.comm)
+
+    frequency_peak = 7.0
+    source_locations = np.linspace((0.3, 0.1), (0.7, 0.1), num_sources)
+    receiver_locations = np.linspace((0.2, 0.9), (0.8, 0.9), 20)
+
+    V = FunctionSpace(mesh, "KMV", 1)
+    x, z = SpatialCoordinate(mesh)
+    c_true = Function(V).interpolate(
+        1.75 + 0.25 * tanh(200 * (0.125 - sqrt((x - 0.5) ** 2 + (z - 0.5) ** 2)))
+    )
+
+    source_mesh = VertexOnlyMesh(mesh, [source_locations[source_number]])
+    V_s = FunctionSpace(source_mesh, "DG", 0)
+
+    d_s = Function(V_s)
+    d_s.interpolate(1.0)
+
+    source_cofunction = assemble(d_s * TestFunction(V_s) * dx)
+    q_s = Cofunction(V.dual()).interpolate(source_cofunction)
+
+    total_steps = int(final_time / dt) + 1
+
+    f = Cofunction(V.dual())
+    solver, u_np1, u_n, u_nm1 = wave_equation_solver(c_true, f, dt, V)
+    output_file = VTKFile("acoustic_solution.pvd")
+    for step in range(total_steps):
+        f.assign(ricker_wavelet(step * dt, frequency_peak) * q_s)
+        solver.solve()
+        u_nm1.assign(u_n)
+        u_n.assign(u_np1)
+        if step % 10 == 0:
+            print(f"Step {step}/{total_steps}")
+            output_file.write(u_n)
+
+
+if __name__ == "__main__":
+    main()

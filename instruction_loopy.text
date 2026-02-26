@@ -1,15 +1,8 @@
-Write the acoustic wave equation following this tutorial:
-/Users/ddolci/dev_code/firedrake/demos/full_waveform_inversion/full_waveform_inversion.py.rst.
-
-IMPORTANT: Implement only the forward wave equation and keep the source term exactly as in the tutorial.
-Do not implement the full inversion process.
-
-Update the mesh to create an extended domain, similar to:
+Update acoustic_solver.py to create an extended domain, similar to:
 https://github.com/devitocodes/devito/blob/main/examples/seismic/abc_methods/04_habc.ipynb
 
-Use Firedrake `Submesh` to represent the physical and extended domains.
-Use the Python scripts in the `submesh_examples` directory as references for submesh usage.
+Use Firedrake `Submesh` to represent the physical and extended domains. For this case, use the Python scripts in the `submesh_examples` directory as references for submesh usage.
 
 Use Clayton's A1 absorbing boundary condition.
 
-IMPORTANT: Keep only the forward wave equation and source term from the tutorial.
+Do not change the wave equation form, except if necessary for the boundary condition implementation.
