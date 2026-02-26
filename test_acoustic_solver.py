@@ -27,6 +27,23 @@ def test_clayton_a1_absorbing_term_enabled_when_labels_present():
     assert any(abs(value) > 0.0 for value in result["absorbing_contribution_trace"][1:])
 
 
+def test_api_contract_records_source_and_time_parameters():
+    result = solve_acoustic_submesh(
+        dt=0.025,
+        final_time=0.25,
+        frequency_peak=3.0,
+        amplitude=1.5,
+        source_location=(0.1, 0.9),
+    )
+
+    parameters = result["parameters"]
+    assert parameters["dt"] == 0.025
+    assert parameters["final_time"] == 0.25
+    assert parameters["frequency_peak"] == 3.0
+    assert parameters["amplitude"] == 1.5
+    assert parameters["source_location"] == (0.1, 0.9)
+
+
 def test_ricker_source_is_time_varying_and_parameters_exposed():
     result = solve_acoustic_submesh(
         dt=0.05,
