@@ -85,6 +85,7 @@ def solve_acoustic_submesh(
         inner,
         solve,
         split,
+        VTKFile,
     )
 
     DG0 = FunctionSpace(mesh, _dg0_family(mesh), 0)
@@ -144,6 +145,7 @@ def solve_acoustic_submesh(
     )
 
     num_steps = max(1, int(math.ceil(float(t_end) / float(dt)))) if t_end > 0 else 1
+    outfile = VTKFile("acoustic_solution.pvd")
     for step in range(num_steps):
         time_value = (step + 1) * float(dt)
         ricker_sample = Constant(_ricker_wavelet(time_value))
@@ -152,12 +154,15 @@ def solve_acoustic_submesh(
             + mass_scale * inner(u_inner_prev, v_inner) * dx_inner
             + ricker_sample * inner(source_shape, v_inner) * dx_inner
         )
+
         for label in clayton_labels:
             l_form += clayton_scale * inner(u_outer_prev, v_outer) * ds_outer(label)
         solve(a_form == l_form, state, bcs=[interface_bc])
         solved_outer, solved_inner = state.subfunctions
         u_outer_prev.assign(solved_outer)
         u_inner_prev.assign(solved_inner)
+        if step % 10 == 0:
+            outfile.write(u_inner_prev)
 
     p_outer, p_inner = split(state)
     solution_norm = float(math.sqrt(assemble(inner(p_outer, p_outer) * dx_outer + inner(p_inner, p_inner) * dx_inner)))
@@ -179,3 +184,11 @@ def solve_acoustic_submesh(
         "solution": state,
         "solution_norm": solution_norm,
     }
+
+
+if __name__ == "__main__":
+    import firedrake
+
+    mesh = firedrake.UnitSquareMesh(10, 10)
+    diagnostics = solve_acoustic_submesh(mesh, source=1.0, wave_speed=1.0, dt=0.01, t_end=0.8, boundary_labels=(1, 2, 3, 4))
+    print(f"Acoustic solve diagnostics: {diagnostics}")
