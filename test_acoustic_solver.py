@@ -62,7 +62,36 @@ def test_ricker_source_is_time_varying_and_parameters_exposed():
 
 
 def test_ricker_source_changes_with_frequency_peak():
-    low_frequency = solve_acoustic_submesh(dt=0.05, final_time=0.4, frequency_peak=1.0)
-    high_frequency = solve_acoustic_submesh(dt=0.05, final_time=0.4, frequency_peak=4.0)
+    absorbing_low_frequency = solve_acoustic_submesh(
+        dt=0.05,
+        final_time=0.4,
+        frequency_peak=1.0,
+        outer_boundary_labels=(1, 2, 3),
+        interface_labels=(3,),
+    )
+    absorbing_high_frequency = solve_acoustic_submesh(
+        dt=0.05,
+        final_time=0.4,
+        frequency_peak=4.0,
+        outer_boundary_labels=(1, 2, 3),
+        interface_labels=(3,),
+    )
+    reflective_low_frequency = solve_acoustic_submesh(
+        dt=0.05,
+        final_time=0.4,
+        frequency_peak=1.0,
+        outer_boundary_labels=(1, 2),
+        interface_labels=(1, 2),
+    )
+    reflective_high_frequency = solve_acoustic_submesh(
+        dt=0.05,
+        final_time=0.4,
+        frequency_peak=4.0,
+        outer_boundary_labels=(1, 2),
+        interface_labels=(1, 2),
+    )
 
-    assert low_frequency["source_values"] != high_frequency["source_values"]
+    assert absorbing_low_frequency["source_values"] != absorbing_high_frequency["source_values"]
+    assert reflective_low_frequency["source_values"] != reflective_high_frequency["source_values"]
+    assert absorbing_low_frequency["domain"]["absorbing_term_enabled"] is True
+    assert reflective_low_frequency["domain"]["absorbing_term_enabled"] is False
