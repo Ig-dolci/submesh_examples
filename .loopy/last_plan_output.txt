@@ -1,0 +1,99 @@
+# Loopy Plan Generation Output
+
+Timestamp: 2026-02-26T00:59:31.176Z
+Error: invalid-plan-envelope: stdout must contain only a single BEGIN_LOOPY_PLAN...END_LOOPY_PLAN block
+Seed source: --generate-prd
+
+STDOUT:
+● SQL: Create planning todos
+  └ 2 row(s) inserted. Last inserted row ID: 2.
+
+● Glob "*.md"
+  └ 2 files found
+
+● Glob "*"
+  └ 20 files found
+
+● Read instruction_loopy.text
+  └ 10 lines read
+
+● Show recent git commits
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager log --oneline -15
+  └ 16 lines...
+
+● Read .loopy/PRD.md
+  └ 179 lines read
+
+● Glob "*.py"
+  └ 8 files found
+
+● Grep "acoustic_solver|test_submesh_acoustic|solve_acoustic_submesh|Clayton|wave equation|forward"
+  └ 38 lines found
+
+● Show commits with touched files
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager log --oneline --name-only -15
+  └ 137 lines...
+
+● Read test_submesh_solve.py lines 1-180
+  └ 179 lines read
+
+● Read test_submesh_assemble.py lines 1-170
+  └ 170 lines read
+
+● Glob "**/*acoustic*"
+  └ 2 files found
+
+● Grep "Submesh\(|RelabeledMesh\(|mark_entities\(" in *.py
+  └ 97 lines found
+
+● Inspect recent commit diffs
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager show --name-status --oneline -3
+  └ 44 lines...
+
+● Todo started: research-context
+
+● Todo queried:
+
+● Todo completed: draft-phase-plan
+
+BEGIN_LOOPY_PLAN
+phase_defaults:
+  stop_on: all_checked
+  test_command: "pytest -q test_submesh_acoustic.py"
+phases:
+  - id: reintroduce-forward-solver
+    title: Reintroduce forward solver
+    stop_on: all_checked
+  - id: restore-acoustic-tests
+    title: Restore acoustic tests
+    stop_on: all_checked
+  - id: validate-forward-behavior
+    title: Validate forward behavior
+    stop_on: tests_pass
+    test_command: "pytest -q test_submesh_acoustic.py test_submesh_solve.py::test_submesh_solve_simple test_submesh_assemble.py::test_submesh_assemble_cell_cell_integral_cell"
+phase_tasks:
+  reintroduce-forward-solver:
+    - "add: restore `acoustic_solver.py` from git history (`cd926a0`) with `solve_acoustic_submesh(...)` present and importable by tests — Acceptance: `rg -n '^def solve_acoustic_submesh\\(' acoustic_solver.py` returns at least one match."
+    - "update: enforce forward-only behavior in `acoustic_solver.py` by removing inversion/optimization code paths while keeping tutorial-style source-term injection and A1 Clayton boundary handling — Acceptance: `rg -n 'objective|optimi|adjoint|inversion' acoustic_solver.py` returns no matches and `rg -n 'source|Clayton|clayton' acoustic_solver.py` returns matches."
+    - "verify: preserve submesh partition mechanics in `acoustic_solver.py` using Firedrake label/submesh flow compatible with repository patterns — Acceptance: `rg -n 'RelabeledMesh|Submesh|mark_entities' acoustic_solver.py` returns matches for the implemented domain split."
+  restore-acoustic-tests:
+    - "add: restore `test_submesh_acoustic.py` from git history (`96b441c`) with BM-1..BM-6 coverage for interface-vs-Clayton boundary partitioning — Acceptance: `rg -n 'BM-1|BM-6|interface|Clayton|reflective' test_submesh_acoustic.py` returns matches."
+    - "update: ensure tests assert finite solver diagnostics and forward-only API contract for `solve_acoustic_submesh(...)` — Acceptance: `rg -n 'np\\.isfinite|finite|solve_acoustic_submesh' test_submesh_acoustic.py` returns matches."
+  validate-forward-behavior:
+    - "verify: run focused acoustic regression suite with `pytest -q test_submesh_acoustic.py` — Acceptance: pytest exits with status 0."
+    - "verify: run submesh compatibility smoke tests `pytest -q test_submesh_solve.py::test_submesh_solve_simple test_submesh_assemble.py::test_submesh_assemble_cell_cell_integral_cell` — Acceptance: pytest exits with status 0."
+follow_up:
+  - "After merge and 10+ CI runs on main, validate runtime stability by comparing `pytest -q test_submesh_acoustic.py` duration and pass rate against current baseline from CI logs."
+END_LOOPY_PLAN
+
+
+
+STDERR:
+
+Total usage est:        1 Premium request
+API time spent:         1m 8s
+Total session time:     1m 15s
+Total code changes:     +0 -0
+Breakdown by AI model:
+ gpt-5.3-codex           211.3k in, 3.9k out, 110.8k cached (Est. 1 Premium request)
+

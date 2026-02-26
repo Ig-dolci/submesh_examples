@@ -1,0 +1,10 @@
+Write a wave equation as on this tutorial /Users/ddolci/dev_code/firedrake/demos/full_waveform_inversion/full_waveform_inversion.py.rst.
+
+Implement only the wave equation and keep the source term as in the tutorial. Do not implement the full inversion process, just the forward wave equation with the source term.
+
+Update the mesh in order to extend the domain similar to the tutorial https://github.com/devitocodes/devito/blob/main/examples/seismic/abc_methods/04_habc.ipynb
+
+Use firedrake submesh to have the physical and extended domains.
+Have a look the python scripts in the submesh_examples directory for examples of how to use firedrake submesh.
+
+Use  A1 Clayton's conditions
