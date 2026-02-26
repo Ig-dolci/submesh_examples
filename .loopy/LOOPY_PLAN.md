@@ -1,5 +1,5 @@
 ---
-agent_command: copilot
+agent_command: copilot --allow-all
 test_command: pytest test_acoustic_solver.py
 max_iterations: 50
 max_minutes: 120
@@ -36,135 +36,7 @@ prd_refs_defaults:
 
 # Plan
 
-<!-- loopy:seed ● Read instruction_loopy.text
-  └ 15 lines read
-
-✗ Create session plan file
-  $ cat > /Users/ddolci/.copilot/session-state/6cce8cb8-a8d6-4afe-9b94-0e4f7800cff4/plan.md
-  <<'EOF'
-  # Plan
-  1. Read source seed and repository structure.
-  2. Inspect relevant code/tests and recent git history....
-  Permission denied and could not request permission from user
-
-● Show recent git history
-  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager log --oneline -20
-  └ 21 lines...
-
-● List directory .
-  └ 14 files found
-
-● Glob "**/*.py" in /Users/ddolci/dev_code/submesh_examples
-  └ 8 files found
-
-● Grep "solve_acoustic_submesh|Clayton|absorbing|Submesh|forward wave|source term|acoustic"
-(/Users/ddolci/dev_code/submesh_examples)
-  └ 74 lines found
-
-✗ List tracked files
-  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager ls-files | wc -l && git --no-pager
-  ls-files | sed -n '1,120p'
-  Permission denied and could not request permission from user
-
-● Glob "**/*acoustic*.py" in /Users/ddolci/dev_code/submesh_examples
-  └ No matches found
-
-● Glob "**/*.{md,txt,rst,yml,yaml,toml,ini,cfg,pyproject}" in
-/Users/ddolci/dev_code/submesh_examples
-  └ 1 file found
-
-● Grep "^def test_" in test_*.py (/Users/ddolci/dev_code/submesh_examples)
-  └ 8 files found
-
-● Show git status short
-  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager status --short
-  └ 10 lines...
-
-● Read test_submesh_solve.py lines 1-260
-  └ 260 lines read
-
-● Read test_submesh_solve.py lines 430-560
-  └ 131 lines read
-
-● Read .pytest_cache/README.md
-  └ 8 lines read
-
-● Read acoustic_solution.pvd
-  └ 13 lines read
-
-● Count VTU snapshots
-  $ cd /Users/ddolci/dev_code/submesh_examples && ls acoustic_solution/*.vtu | wc -l
-  └ 2 lines...
-
-✗ Show deleted solver from HEAD
-  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager show HEAD:acoustic_solver.py | sed
-  -n '1,220p'
-  Permission denied and could not request permission from user
-
-✗ Show deleted acoustic test from HEAD
-  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager show HEAD:test_acoustic_solver.py |
-   sed -n '1,260p'
-  Permission denied and could not request permission from user
-
-● SQL: Initialize task todos
-  └ 2 row(s) inserted. Last inserted row ID: 2.
-
-● Inspect latest commit files
-  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager show --name-only --oneline -1
-  └ 8 lines...
-
-● Count Submesh usages
-  $ cd /Users/ddolci/dev_code/submesh_examples && rg -n "Submesh\(" test_*.py | wc -l && rg -n
-  "@pytest.mark.parallel" test_*.py | wc -l
-  └ 5 lines...
-
-● Summarize test file/test counts
-  $ cd /Users/ddolci/dev_code/submesh_examples && ls test_*.py | wc -l && rg "^def test_" test_*.py
-  | wc -l
-  └ 4 lines...
-
-● Grep "Submesh\(" in test_*.py (/Users/ddolci/dev_code/submesh_examples)
-  └ 8 files found
-
-● Grep "@pytest\.mark\.parallel" in test_*.py (/Users/ddolci/dev_code/submesh_examples)
-  └ 7 files found
-
-● Grep "from firedrake import \*" in test_*.py (/Users/ddolci/dev_code/submesh_examples)
-  └ 8 files found
-
-● Glob "acoustic_solution/*.vtu" in /Users/ddolci/dev_code/submesh_examples
-  └ 8 files found
-
-✗ History of acoustic solver path
-  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager log --oneline -- acoustic_solver.py
-   test_acoustic_solver.py | sed -n '1,20p'
-  Permission denied and could not request permission from user
-
-✗ List acoustic artifacts sizes
-  $ cd /Users/ddolci/dev_code/submesh_examples && ls -lh acoustic_solution.pvd
-  acoustic_solution/*.vtu | sed -n '1,20p'
-  Permission denied and could not request permission from user
-
-● Todo started: research-context
-
-● Todo queried:
-
-✗ web_fetch:
-https://raw.githubusercontent.com/devitocodes/devito/main/examples/seismic/abc_methods/04_habc.ipynb
-  Permission denied and could not request permission from user
-
-● web_fetch: https://www.firedrakeproject.org/demos/full_waveform_inversion.py.html
-  └ Contents of https://www.firedrakeproject.org/demos/full_waveform_inversion.py...
-
-● Get git status short
-  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager status --short
-  └ 10 lines...
-
-● Todo completed: draft-prd
-
-● Todo queried:
-
-# PRD: Forward Acoustic Submesh Solver with Clayton A1 ABC
+## PRD: Forward Acoustic Submesh Solver with Clayton A1 ABC
 
 ## Problem Statement
 Implement a Firedrake-based forward-only acoustic wave solver that uses Submesh for physical/extended domains and Clayton A1 absorbing boundaries, preserving the tutorial’s source-term definition and excluding inversion logic.
@@ -256,7 +128,7 @@ Implement a Firedrake-based forward-only acoustic wave solver that uses Submesh 
 ## Assumptions
 - Prior acoustic files were intentionally part of expected scope and should be restored/replaced, because recent commit history references them while working tree shows deletion.
 - Devito extended-domain example is guidance for domain layout only (not a required numerical discretization match), because direct notebook fetch was unavailable in this environment.
-- Existing Firedrake/pytest infrastructure in this repo is the authoritative convention for implementation/testing patterns. -->
+- Existing Firedrake/pytest infrastructure in this repo is the authoritative convention for implementation/testing patterns.
 
 ## Phase: implement-forward-solver
 <!-- loopy:phase implement-forward-solver -->
