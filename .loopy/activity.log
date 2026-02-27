@@ -1,5 +1,0 @@
-[2026-02-26T19:20:21.758Z] PRD generated: .loopy/PRD.md
-[2026-02-26T19:20:43.214Z] plan generation failed: agent-exit-1 (see .loopy/last_plan_output.txt)
-[2026-02-26T19:20:43.218Z] Plan updated before loop: .loopy/LOOPY_PLAN.md
-[2026-02-26T19:20:43.247Z] Plan updated with PRD refs defaults (auto-enforced).
-[2026-02-26T19:20:43.266Z] Plan ready. Run `loopy` to start build mode.
