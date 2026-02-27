@@ -1,8 +1,0 @@
-Update acoustic_solver.py to create an extended domain, similar to:
-https://github.com/devitocodes/devito/blob/main/examples/seismic/abc_methods/04_habc.ipynb
-
-Use Firedrake `Submesh` to represent the physical and extended domains. For this case, use the Python scripts in the `submesh_examples` directory as references for submesh usage.
-
-Use Clayton's A1 absorbing boundary condition.
-
-Do not change the wave equation form, except if necessary for the boundary condition implementation.

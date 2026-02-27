@@ -3,8 +3,6 @@ import os
 import finat
 import numpy as np
 from firedrake import *
-from firedrake.adjoint import *
-from pyadjoint.reduced_functional_numpy import ReducedFunctionalNumPy
 from scipy.optimize import minimize as scipy_minimize
 
 
@@ -15,8 +13,8 @@ def ricker_wavelet(t, fs, amp=1.0):
     return amp * (1.0 - 0.5 * omega2 * t0 * t0) * np.exp(-0.25 * omega2 * t0 * t0)
 
 
-def wave_equation_solver(c, source_function, dt, V, dx0, dx1,
-                         quad_rule0, quad_rule1):
+def wave_equation_form(c, source_function, dt, V, dx0, dx1,
+                         quad_rule0, quad_rule1, x):
     u = TrialFunction(V)
     v = TestFunction(V)
     u0, u1 = split(u)
@@ -24,18 +22,19 @@ def wave_equation_solver(c, source_function, dt, V, dx0, dx1,
     u_n = Function(V)
     u_nm1 = Function(V)
     u_np1 = Function(V)
-    u_np10, u_n1 = u_np1.subfunctions
+    u_np10, u_n1= u_np1.subfunctions
     u_n0, _ = u_n.subfunctions
     u_nm10, u_nm1_1 = u_nm1.subfunctions
     m = 1 / (c * c)
     time_term = m * (u0 - 2.0 * u_n0 + u_nm10) / Constant(dt**2) * v0 * dx0(scheme=quad_rule0)
     a = dot(grad(u_n0), grad(v0)) * dx0(scheme=quad_rule0)
     F = a + time_term
-    # time_term + a
-    # Clayton's A1 condition
-    nf = (1 / c) * ((u1 - u_n1) / dt) * v1 * dx1(scheme=quad_rule1) + dot(u_n1.dx(0), v1) * dx1(scheme=quad_rule1)
-    F += nf + inner(u0 - u1, v1) * dx1(scheme=quad_rule1)
-
+    M = 0.1
+    weight = (M - x)/M
+    clayton_bc = (1 / c) * ((u_n1 - u_nm1_1) / dt) * v1 * dx1(scheme=quad_rule1) - inner(u_n1.dx(0), v1)*dx1(scheme=quad_rule1)
+    F += clayton_bc
+    # + 
+    # ((1. - weight) * u0 + weight * u1) * v1 * dx1(scheme=quad_rule1)
     lin_var = LinearVariationalProblem(lhs(F), rhs(F) + source_function, u_np1)
     solver_parameters = {"mat_type": "matfree", "ksp_type": "preonly", "pc_type": "jacobi"}
     solver = LinearVariationalSolver(lin_var, solver_parameters=solver_parameters)
@@ -91,24 +90,23 @@ def main():
     total_steps = int(final_time / dt) + 1
 
     f = Cofunction(V.dual())
-    solver, u_np10, u_n0, u_nm10, u1, u_n1 = wave_equation_solver(
-        c_true, f, dt, V, dx0, dx1, quad_rule0, quad_rule1
+    solver, u_np10, u_n0, u_nm10, u1, u_n1 = wave_equation_form(
+        c_true, f, dt, V, dx0, dx1, quad_rule0, quad_rule1, x
     )
     M = 0.1
     weight = (M - x)/M
+    w = Function(V1).interpolate(weight)
+    VTKFile("weight.pvd").write(w)
     output_file = VTKFile("acoustic_solution.pvd")
-    u_till = Function(V0)
     for step in range(total_steps):
         f.sub(0).assign(ricker_wavelet(step * dt, frequency_peak) * q_s)
         solver.solve()
-        u_till.interpolate(u_n1, allow_missing_dofs=True)
-        # u_np10.interpolate((1 - weight) * u_np10 + weight * u_till)
         u_nm10.assign(u_n0)
         u_n0.assign(u_np10)
-        if step % 10 == 0:
+        if step % 100 == 0:
             print(f"Step {step}/{total_steps}")
-            output_file.write(u_till)
-
+            output_file.write(u_n0)
+    VTKFile("acoustic_solution_submesh.pvd").write(u_n1)
 
 if __name__ == "__main__":
     main()
