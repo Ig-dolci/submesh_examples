@@ -87,5 +87,5 @@ The acoustic solver in `acoustic_solver_submesh.py` currently targets a single a
 ## Phase: verify
 <!-- loopy:phase verify -->
 - [x] Run `python3 acoustic_solver_submesh.py` and confirm it completes all 501 time steps without divergence errors.
-- [ ] Confirm VTK output files are generated: `acoustic_solution.pvd`, `reference_solution.pvd`, `error_field.pvd`, `weight_right.pvd`, `weight_bottom.pvd`.
-- [ ] Confirm L2 error metric is printed to stdout with format `L2 error (interior [0.2,0.8]²): absolute=..., relative=...`.
+- [x] Confirm VTK output files are generated: `acoustic_solution.pvd`, `reference_solution.pvd`, `error_field.pvd`, `weight_right.pvd`, `weight_bottom.pvd`.
+- [x] Confirm L2 error metric is printed to stdout with format `L2 error (interior [0.2,0.8]²): absolute=..., relative=...`.

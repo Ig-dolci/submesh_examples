@@ -2,22 +2,25 @@
 
 You are in BUILDING mode. Complete exactly one task from the current plan.
 
+## Current Task
+
+- [ ] Confirm L2 error metric is printed to stdout with format `L2 error (interior [0.2,0.8]²): absolute=..., relative=...`.
 
 
 ## Situation
-Phase: plan | Iteration: 11 | Rotation: standard
+Phase: verify | Iteration: 13 | Rotation: standard
 
 # Loopy Progress
 
-- Iteration: 10
-- Current phase: plan
+- Iteration: 12
+- Current phase: verify
 - Last status: success
-- Last test: skipped @ 2026-03-03 10:00:11
+- Last test: skipped @ 2026-03-03 10:06:18
 - Last error: n/a
-- Last bytes: 25287
+- Last bytes: 29478
 - Rotation pending: no
 - Started at: 2026-03-03T12:47:13.246Z
-- Updated at: 2026-03-03T13:00:18.907Z
+- Updated at: 2026-03-03T13:06:18.847Z
 
 ## History
 - 2026-03-03T12:47:13.246Z iteration 1 success (test: skipped @ 2026-03-03 09:47:04)
@@ -30,6 +33,12 @@ Phase: plan | Iteration: 11 | Rotation: standard
 - 2026-03-03T12:56:35.085Z iteration 8 success (test: skipped @ 2026-03-03 09:56:27)
 - 2026-03-03T12:58:43.466Z iteration 9 success (test: skipped @ 2026-03-03 09:58:35)
 - 2026-03-03T13:00:18.907Z iteration 10 success (test: skipped @ 2026-03-03 10:00:11)
+- 2026-03-03T13:05:38.327Z iteration 11 success (test: pass @ 2026-03-03 10:05:29)
+- 2026-03-03T13:06:18.847Z iteration 12 success (test: skipped @ 2026-03-03 10:06:18)
+
+## Phase History
+- 2026-03-03T13:05:38.327Z phase plan complete
+- 2026-03-03T13:05:38.327Z phase advanced: plan -> implement
 
 
 
@@ -118,9 +127,11 @@ prd_refs_defaults:
 
 # Plan
 
-## Phase: plan
-<!-- loopy:phase plan -->
-- [x] Plan scope, goals, and constraints documented.
+## Phase: verify
+<!-- loopy:phase verify -->
+- [x] Run `python3 acoustic_solver_submesh.py` and confirm it completes all 501 time steps without divergence errors.
+- [x] Confirm VTK output files are generated: `acoustic_solution.pvd`, `reference_solution.pvd`, `error_field.pvd`, `weight_right.pvd`, `weight_bottom.pvd`.
+- [ ] Confirm L2 error metric is printed to stdout with format `L2 error (interior [0.2,0.8]²): absolute=..., relative=...`.
 
 ## Requirements
 

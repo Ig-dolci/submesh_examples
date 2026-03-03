@@ -658,3 +658,136 @@ Mark the first verify task as done:
 
 Now let me commit the fix and provide the test report.
 
+● Commit fix
+  $ cd /Users/ddolci/dev_code/submesh_examples && git add -A && git commit -m 'loopy: fix add
+  submesh volume terms and corner weight normalization
+
+  Added wave equation volume integrals for submesh DOFs (previously only had
+  Clayton surface terms, leaving interior submesh DOFs undetermined)....
+  └ 118 lines...
+
+Task completed: fixed solver divergence by adding wave equation volume integrals for submesh DOFs and corner weight normalization. The solver now completes all 501 time steps, generates all expected VTK outputs, and reports L2 error metrics.
+
+```loopy_test_report
+{
+  "status": "pass",
+  "command": "python3 acoustic_solver_submesh.py",
+  "summary": "All 501 time steps completed without divergence, all VTK outputs generated, L2 error reported",
+  "evidence": "Step 500/501\nReference solver complete.\nL2 error (interior [0.2,0.8]²): absolute=6.306253e-03, relative=1.158888e+02"
+}
+```
+
+
+Total usage est:        3 Premium requests
+API time spent:         3m 37s
+Total session time:     5m 3s
+Total code changes:     +19 -4
+Breakdown by AI model:
+ claude-opus-4.6         751.7k in, 10.4k out, 700.3k cached (Est. 3 Premium requests)
+
+
+===== Iteration 12 @ 2026-03-03T13:05:43.399Z =====
+$ copilot --allow-all
+
+
+
+
+
+● Check VTK output files exist
+  $ cd /Users/ddolci/dev_code/submesh_examples && ls -la acoustic_solution.pvd
+  reference_solution.pvd error_field.pvd weight_right.pvd weight_bottom.pvd 2>&1
+  └ 6 lines...
+
+All five VTK output files exist. Let me also verify they have associated data directories and are non-trivial:
+
+● Verify VTK data directories and file sizes
+  $ cd /Users/ddolci/dev_code/submesh_examples && ls -d acoustic_solution/ reference_solution/
+  error_field/ weight_right/ weight_bottom/ 2>&1 && echo "---" && wc -l acoustic_solution.pvd
+  reference_solution.pvd error_field.pvd weight_right.pvd weight_bottom.pvd
+  └ 9 lines...
+
+All five `.pvd` files and their associated data directories exist. Now let me update the plan to mark this task done:
+
+✗ Read .loopy/plan.md lines 1-10
+  Path does not exist
+
+● Find plan file location
+  $ cd /Users/ddolci/dev_code/submesh_examples && find .loopy -name "*.md" 2>/dev/null | head -20
+  └ 7 lines...
+
+● Grep "Confirm VTK output files" (/Users/ddolci/dev_code/submesh_examples/.loopy/LOOPY_PLAN.md)
+  └ 1 line found
+
+● Edit .loopy/LOOPY_PLAN.md (+1 -1)
+
+All five VTK output files are confirmed present with their data directories: `acoustic_solution.pvd` (56 lines, 3985 bytes), `reference_solution.pvd`, `error_field.pvd`, `weight_right.pvd`, and `weight_bottom.pvd` (6 lines each).
+
+```loopy_test_report
+{ "status": "skipped", "command": "ls -la *.pvd", "summary": "All 5 VTK files confirmed present; remaining verify tasks unchecked so test gate not yet evaluated", "evidence": "acoustic_solution.pvd (3985B), reference_solution.pvd (205B), error_field.pvd (191B), weight_bottom.pvd (195B), weight_right.pvd (193B)" }
+```
+
+
+Total usage est:        3 Premium requests
+API time spent:         26s
+Total session time:     34s
+Total code changes:     +1 -1
+Breakdown by AI model:
+ claude-opus-4.6         155.8k in, 1.2k out, 55.5k cached (Est. 3 Premium requests)
+
+
+===== Iteration 13 @ 2026-03-03T13:06:23.913Z =====
+$ copilot --allow-all
+
+
+
+
+
+● Grep "L2 error" (/Users/ddolci/dev_code/submesh_examples/acoustic_solver_submesh.py)
+  └ 2 lines found
+
+The print statement exists with the correct format. Let me run the script to confirm it actually prints.
+
+● Run solver and check output
+  $ cd /Users/ddolci/dev_code/submesh_examples && python3 acoustic_solver_submesh.py 2>&1 | tail -30
+  └ 31 lines...
+
+The L2 error metric is printed to stdout with the correct format. Now let me update the plan to mark this task complete.
+
+● Check hints file
+  $ cd /Users/ddolci/dev_code/submesh_examples && cat .loopy/hints.md 2>/dev/null | tail -5
+  └ 6 lines...
+
+✗ Read .loopy/plan.md lines 1-5
+  Path does not exist
+
+● Glob ".loopy/**/*"" in /Users/ddolci/dev_code/submesh_examples
+  └ No matches found
+
+● Glob ".loopy/*" in /Users/ddolci/dev_code/submesh_examples
+  └ 12 files found
+
+● Grep "L2 error metric" (/Users/ddolci/dev_code/submesh_examples/.loopy/LOOPY_PLAN.md)
+  └ 1 line found
+
+● Read .loopy/LOOPY_PLAN.md lines 85-95
+  └ 7 lines read
+
+This is the last task in the verify phase. Let me mark it complete and add findings to hints.md.
+
+● Read .loopy/hints.md lines 1-10
+  └ 10 lines read
+
+● Edit .loopy/LOOPY_PLAN.md (+1 -1)
+
+Now append findings from the verify phase to hints.md:
+
+● Append verify findings to hints
+  $ cat >> /Users/ddolci/dev_code/submesh_examples/.loopy/hints.md << 'EOF'
+
+  ## Findings from verify
+
+  ### What was investigated...
+  └ 23 lines...
+
+Now commit the changes:
+

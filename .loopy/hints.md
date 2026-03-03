@@ -35,3 +35,20 @@ The implementation requires: (1) replacing the single left submesh with right+bo
 
 ### Recommended next action
 Implement the changes in order: submesh construction → per-submesh Clayton wiring → blending → reference solver → error computation.
+
+## Findings from verify
+
+### What was investigated
+- Ran `python3 acoustic_solver_submesh.py` end-to-end and checked all three verification criteria: completion, VTK output, and L2 error reporting.
+
+### What was found
+- Script completes all 501 time steps plus reference solver without errors (exit code 0).
+- All expected VTK files generated: `acoustic_solution.pvd`, `reference_solution.pvd`, `error_field.pvd`, `weight_right.pvd`, `weight_bottom.pvd`.
+- L2 error printed correctly: `L2 error (interior [0.2,0.8]²): absolute=6.306253e-03, relative=1.158888e+02`.
+- The relative error is very large (≈116), indicating the HABC solution diverges significantly from the reference in the interior. This suggests the absorbing boundary conditions may not be working effectively or there is a blending/coupling issue.
+
+### Conclusion
+All verify-phase checks pass. The solver runs, produces output, and reports the error metric. However, the high relative error warrants investigation in a follow-up — the ABC may need tuning or the coupling between parent and submesh solves may have issues.
+
+### Recommended next action
+Investigate the large relative error: check if the Clayton ABC parameters, weight blending, or time-stepping coupling are correct.
