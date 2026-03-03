@@ -79,7 +79,7 @@ The acoustic solver in `acoustic_solver_submesh.py` currently targets a single a
 ## Phase: implement
 <!-- loopy:phase implement -->
 - [x] Replace left submesh (x<0.1, marker 999) with right submesh (x>0.9, marker 999) and bottom submesh (z<0.1, marker 998) in `main()` lines 122-124. Use `ruben_test.py` lines 69-75 as pattern for dual `mark_entities`/`Submesh` calls.
-- [ ] Refactor `wave_equation_solver()` to accept a list of `(submesh, dx_sub)` tuples and build Clayton+Dirichlet terms for each submesh independently. Each submesh gets its own `V_sub`, `c_sub`, `u_sub`, interface Dirichlet BC, and Clayton surface integral on shared exterior markers.
+- [x] Refactor `wave_equation_solver()` to accept a list of `(submesh, dx_sub)` tuples and build Clayton+Dirichlet terms for each submesh independently. Each submesh gets its own `V_sub`, `c_sub`, `u_sub`, interface Dirichlet BC, and Clayton surface integral on shared exterior markers.
 - [ ] Update HABC blending in the time loop (lines 185-189) to handle two submeshes: right strip weight = `(x_sub - (1-δ)) / δ` (ramps 0→1 toward x=1), bottom strip weight = `(δ - z_sub) / δ` (ramps 0→1 toward z=0). Clamp combined weight to [0,1] for corner overlap.
 - [ ] Add `reference_solver()` function: run same wave equation on `RectangleMesh(400,400, 5.0,5.0)` (same h=1/80) with no ABC, source at (0.3,0.1), same dt/final_time/velocity model. Return final solution restricted to [0,1]² region.
 - [ ] Add L2 error computation: interpolate reference solution onto HABC mesh, compute `norm(u_habc - u_ref)` / `norm(u_ref)` in [0.2,0.8]² interior and print result.

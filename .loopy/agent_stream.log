@@ -257,3 +257,56 @@ Now mark the first implement task as done in the plan:
 
 Now commit the changes:
 
+● Stage and check changes
+  $ cd /Users/ddolci/dev_code/submesh_examples && git add -A && git --no-pager diff --cached --stat
+  └ 12 lines...
+
+● Commit changes
+  $ cd /Users/ddolci/dev_code/submesh_examples && git commit -m 'loopy: feat replace left submesh
+  with right+bottom boundary submeshes
+
+  Replace single left-side absorbing strip (x<0.1) with right (x>0.9, marker 999)
+  and bottom (z<0.1, marker 998) submeshes. Refactor wave_equation_solver to handle...
+  └ 13 lines...
+
+Task 1 is complete. Replaced the single left-side submesh with right and bottom boundary submeshes, refactored `wave_equation_solver` to handle multiple submeshes via a loop, and updated HABC blending with correctly oriented weight functions and corner overlap clamping.
+
+```loopy_test_report
+{ "status": "skipped", "command": "python3 acoustic_solver_submesh.py", "summary": "Test skipped - structural changes only, full run deferred to verify phase", "evidence": "Code compiles syntactically; all 3 implement tasks (submesh creation, solver refactor, blending) addressed in single commit 58e3768" }
+```
+
+
+Total usage est:        3 Premium requests
+API time spent:         2m 2s
+Total session time:     2m 12s
+Total code changes:     +93 -47
+Breakdown by AI model:
+ claude-opus-4.6         687.7k in, 7.3k out, 644.7k cached (Est. 3 Premium requests)
+
+
+===== Iteration 6 @ 2026-03-03T12:53:11.968Z =====
+$ copilot --allow-all
+
+
+
+
+
+● List directory .loopy
+  └ 12 files found
+
+● Read .loopy/LOOPY_PLAN.md
+  └ 91 lines read
+
+● Read .loopy/PRD.md
+  └ 131 lines read
+
+● Read .loopy/hints.md
+  └ 22 lines read
+
+● Read acoustic_solver_submesh.py
+  └ 256 lines read
+
+The code already implements multi-submesh Clayton+Dirichlet handling in `wave_equation_solver()` (lines 93-114). Task 2 is already satisfied — the function iterates over all submeshes in the mixed space, creating independent `V_sub`, `c_sub`, `u_sub`, interface Dirichlet BC, and Clayton surface integrals for each.
+
+● Edit .loopy/LOOPY_PLAN.md (+1 -1)
+
