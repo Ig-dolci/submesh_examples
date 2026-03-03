@@ -1,0 +1,82 @@
+# Loopy Plan Generation Output
+
+Timestamp: 2026-03-03T12:39:01.403Z
+Error: invalid-plan-envelope: stdout must contain only a single BEGIN_LOOPY_PLAN...END_LOOPY_PLAN block
+Seed source: --generate-prd
+
+STDOUT:
+
+
+
+
+● Read acoustic_solver_submesh.py
+  └ 210 lines read
+
+● Read ruben_test.py
+  └ 90 lines read
+
+● Check git history
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager log --oneline -15 2>&1 || echo "no
+  git"
+  └ 16 lines...
+
+Now I have full context. Let me produce the plan.
+
+BEGIN_LOOPY_PLAN
+phase_defaults:
+  stop_on: all_checked
+  test_command: "cd /Users/ddolci/dev_code/submesh_examples && python -c 'import acoustic_solver_submesh; print(\"import ok\")'"
+
+phases:
+  - id: multi-boundary-habc
+    title: "Multi-boundary Clayton HABC submeshes"
+    stop_on: all_checked
+    test_command: "cd /Users/ddolci/dev_code/submesh_examples && python -c 'import acoustic_solver_submesh; print(\"import ok\")'"
+
+  - id: reference-simulation
+    title: "Infinite-domain reference solver"
+    stop_on: all_checked
+    test_command: "cd /Users/ddolci/dev_code/submesh_examples && python -c 'import acoustic_solver_submesh; print(\"import ok\")'"
+
+  - id: comparison-verification
+    title: "HABC vs reference comparison"
+    stop_on: all_checked
+    test_command: "cd /Users/ddolci/dev_code/submesh_examples && python -c 'import acoustic_solver_submesh; print(\"import ok\")'"
+
+phase_tasks:
+  multi-boundary-habc:
+    - "refactor: extract `wave_equation_solver` in `acoustic_solver_submesh.py` to accept a list of (submesh, exterior_markers, interface_markers) tuples instead of a single submesh, so Clayton ABC terms are added per-submesh in a loop (lines 70–105) — Acceptance: function signature accepts multiple submeshes and the import succeeds without error."
+    - "implement: replace the single x<0.1 indicator/submesh (lines 122–124) with three submeshes — right strip (x > 0.9, marker 999), bottom strip (z < 0.1, marker 998), top strip (z > 0.9, marker 997) — using `mesh.mark_entities` and `Submesh(mesh, 2, marker)` for each, following the pattern in `ruben_test.py` lines 69–75 — Acceptance: three submeshes are created with distinct markers and no x<0.1 submesh exists."
+    - "implement: construct a mixed function space `V = V0 * V_right * V_bottom * V_top` (4 components) and build Clayton ABC surface integrals `(1/c_sub) * ((u_sub - u_sub_prev) / dt) * v_sub * ds_ext(marker)` for each submesh's shared exterior facets, with Dirichlet BCs on each submesh's interface facets — Acceptance: the variational form `F` includes Clayton terms for all three submeshes."
+    - "implement: define three weight functions in `main()` — `w_right` ramping from 0 at x=0.9 to 1 at x=1.0, `w_bottom` ramping from 1 at z=0 to 0 at z=0.1, `w_top` ramping from 0 at z=0.9 to 1 at z=1.0 — each as a `Function` on its respective submesh's function space — Acceptance: each weight is 1.0 at the outer boundary and 0.0 at the interface."
+    - "implement: update the HABC blending loop (lines 187–189) to blend all three submesh solutions into `u_np10` using `u_np10 = (1 - w_total) * u_np10 + w_right * u_right + w_bottom * u_bottom + w_top * u_top` with `w_total = min(w_right + w_bottom + w_top, 1.0)` to handle corner overlap — Acceptance: blending uses clamped additive weights and no blending occurs on the x=0 (left) boundary."
+    - "implement: write VTK output for the three weight functions to `weight_right.pvd`, `weight_bottom.pvd`, `weight_top.pvd` for visual verification, replacing the single `weight.pvd` output — Acceptance: three weight PVD files are written."
+
+  reference-simulation:
+    - "implement: add a `run_reference_simulation(dt, final_time, frequency_peak, source_location, c_expr, nx_per_unit=80)` function in `acoustic_solver_submesh.py` that creates a large-domain mesh (e.g., RectangleMesh over [-2, 3] × [-2, 3] with same element size h=1/80) and runs the same wave equation WITHOUT any submesh or ABC — Acceptance: function exists, creates a mesh with extents large enough that wavefront (c_max * final_time ≈ 2.0) does not reach any boundary, and returns the final solution."
+    - "implement: in `run_reference_simulation`, use the same Ricker source, velocity model `c_true`, KMV elements, mass-lumped time stepping, and divergence checking as in `main()` — reuse `ricker_wavelet` and `check_divergence` — Acceptance: reference solver uses identical discretization parameters and source term."
+    - "implement: write the reference solution to `reference_solution.pvd` VTK output for visual comparison — Acceptance: PVD file is created with the reference pressure field."
+
+  comparison-verification:
+    - "implement: add a `compare_solutions(u_habc, u_ref, mesh, region_bounds=(0.2, 0.8, 0.2, 0.8))` function that computes the L2 relative error between the HABC solution and the reference solution restricted to the interior region [0.2, 0.8]² — Acceptance: function returns a scalar relative error value using `sqrt(assemble((u_habc - u_ref)^2 * dx_region)) / sqrt(assemble(u_ref^2 * dx_region))`."
+    - "implement: update `main()` to optionally call `run_reference_simulation` and `compare_solutions` when a `--with-reference` CLI flag is passed (use `argparse`), printing the L2 relative error to stdout — Acceptance: running with `--with-reference` prints 'L2 relative error: <value>' and without the flag the solver runs as before."
+    - "implement: write the error field `u_habc - u_ref` restricted to the physical domain to `error_field.pvd` for visualization — Acceptance: PVD file is created showing the spatial error distribution."
+
+follow_up:
+  - "After running the full solver with --with-reference on the target mesh (nx=ny=80, final_time=1.0), verify the L2 relative error in [0.2, 0.8]² is below 5% — this requires a Firedrake environment and may take several minutes of compute."
+  - "Visually inspect weight_right.pvd, weight_bottom.pvd, weight_top.pvd in ParaView to confirm weight functions ramp correctly from 0 at the interface to 1 at the outer boundary."
+  - "Visually compare acoustic_solution.pvd and reference_solution.pvd in ParaView to confirm reflections are attenuated at right, bottom, and top boundaries and that the left boundary behaves as a natural (Neumann) boundary."
+  - "If corner artifacts appear where two absorbing strips overlap, investigate dedicated corner submesh treatment or adjusted weight clamping strategy."
+END_LOOPY_PLAN
+
+
+
+STDERR:
+
+Total usage est:        3 Premium requests
+API time spent:         54s
+Total session time:     59s
+Total code changes:     +0 -0
+Breakdown by AI model:
+ claude-opus-4.6         50.2k in, 2.4k out, 28.9k cached (Est. 3 Premium requests)
+
