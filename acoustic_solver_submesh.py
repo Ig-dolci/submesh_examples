@@ -70,39 +70,53 @@ def check_divergence(
 def wave_equation_solver(c, source_function, dt, V, dx0, quad_rule0):
     u = TrialFunction(V)
     v = TestFunction(V)
-    u0, u1 = split(u)
-    v0, v1 = split(v)
+    u_splits = split(u)
+    v_splits = split(v)
+    u0 = u_splits[0]
+    v0 = v_splits[0]
     u_n = Function(V)
     u_nm1 = Function(V)
     u_np1 = Function(V)
-    u_n0, u_n1 = u_n.subfunctions
-    u_nm10, u_nm1_1 = u_nm1.subfunctions
-    V1 = V.sub(1)
+    subs = u_n.subfunctions
+    subs_m1 = u_nm1.subfunctions
+    u_n0 = subs[0]
+    u_nm10 = subs_m1[0]
     mesh = V.sub(0).mesh()
-    submesh = V1.mesh()
-    c_sub = Function(V1).interpolate(c, allow_missing_dofs=True)
-    u_n0_sub = Function(V1).interpolate(u_n0, allow_missing_dofs=True)
+
     m = 1 / (c * c)
     time_term = m * (u0 - 2.0 * u_n0 + u_nm10) / Constant(dt**2) * v0 * dx0(scheme=quad_rule0)
     a = dot(grad(u_n0), grad(v0)) * dx0(scheme=quad_rule0)
     F = a + time_term
-    ds1_ext = Measure("ds", domain=submesh, intersect_measures=(Measure("ds", mesh),))
-    u_sub = Function(V1).interpolate(u_n0, allow_missing_dofs=True)
-    interface_markers = get_interface_markers(mesh, submesh)
-    if not interface_markers:
-        raise ValueError("No interface markers found between parent mesh and submesh")
-    interface_dirichlet = DirichletBC(V1, u_sub, interface_markers)
-    clayton_outer = (1 / c_sub) * ((u_n1 - u_nm1_1) / dt) * v1
-    exterior_markers = get_shared_exterior_markers(mesh, submesh)
-    for marker in exterior_markers:
-        F += clayton_outer * ds1_ext(marker)
 
-    bcs = [interface_dirichlet]
+    bcs = []
+    u_n0_subs = []
+    num_submeshes = len(V) - 1
+    for i in range(num_submeshes):
+        idx = i + 1
+        V_sub = V.sub(idx)
+        submesh_i = V_sub.mesh()
+        c_sub = Function(V_sub).interpolate(c, allow_missing_dofs=True)
+        u_sub = Function(V_sub).interpolate(u_n0, allow_missing_dofs=True)
+        u_n0_subs.append(u_sub)
+
+        interface_markers = get_interface_markers(mesh, submesh_i)
+        if not interface_markers:
+            raise ValueError(f"No interface markers for submesh {i}")
+        bcs.append(DirichletBC(V_sub, u_sub, interface_markers))
+
+        ds_ext = Measure("ds", domain=submesh_i, intersect_measures=(Measure("ds", mesh),))
+        exterior_markers = get_shared_exterior_markers(mesh, submesh_i)
+        u_ni = u_splits[idx]
+        v_ni = v_splits[idx]
+        u_nm1i = subs_m1[idx]
+        clayton = (1 / c_sub) * ((u_ni - u_nm1i) / dt) * v_ni
+        for marker in exterior_markers:
+            F += clayton * ds_ext(marker)
 
     lin_var = LinearVariationalProblem(lhs(F), rhs(F) + source_function, u_np1, bcs=bcs)
     solver_parameters = {"mat_type": "matfree", "ksp_type": "preonly", "pc_type": "jacobi"}
     solver = LinearVariationalSolver(lin_var, solver_parameters=solver_parameters)
-    return solver, u_np1, u_n, u_nm1, u_n0_sub
+    return solver, u_np1, u_n, u_nm1, u_n0_subs
 
 
 def main():
@@ -119,21 +133,24 @@ def main():
     mesh = UnitSquareMesh(nx, ny, comm=my_ensemble.comm)
     x, z = SpatialCoordinate(mesh)
     DQ0 = FunctionSpace(mesh, "DG", 0)
-    indicator_function = Function(DQ0).interpolate(conditional(x < 0.1, 1, 0))
-    mesh.mark_entities(indicator_function, 999)
-    submesh = Submesh(mesh, 2, 999)
-    dx0 = Measure("dx", domain=mesh, intersect_measures=(Measure("dx", submesh),))
-    dx1 = Measure("dx", domain=submesh, intersect_measures=(Measure("dx", mesh),))
+    indicator_right = Function(DQ0).interpolate(conditional(x > 0.9, 1, 0))
+    indicator_bottom = Function(DQ0).interpolate(conditional(z < 0.1, 1, 0))
+    mesh.mark_entities(indicator_right, 999)
+    mesh.mark_entities(indicator_bottom, 998)
+    submesh_right = Submesh(mesh, 2, 999)
+    submesh_bottom = Submesh(mesh, 2, 998)
+    dx0 = Measure("dx", domain=mesh, intersect_measures=(Measure("dx", submesh_right), Measure("dx", submesh_bottom)))
 
     V0 = FunctionSpace(mesh, "KMV", 1)
-    V1 = FunctionSpace(submesh, "KMV", 1)
+    V1_right = FunctionSpace(submesh_right, "KMV", 1)
+    V1_bottom = FunctionSpace(submesh_bottom, "KMV", 1)
     quad_rule0 = finat.quadrature.make_quadrature(
         V0.finat_element.cell, V0.ufl_element().degree(), "KMV"
     )
     frequency_peak = 7.0
     source_locations = np.linspace((0.3, 0.1), (0.7, 0.1), num_sources)
 
-    V = V0 * V1
+    V = V0 * V1_right * V1_bottom
     c_true = Function(V0).interpolate(
         1.75 + 0.25 * tanh(200 * (0.125 - sqrt((x - 0.5) ** 2 + (z - 0.5) ** 2)))
     )
@@ -150,22 +167,40 @@ def main():
     total_steps = int(final_time / dt) + 1
 
     f = Cofunction(V.dual())
-    solver, u_np1, u_n, u_nm1, u_n0_sub = wave_equation_solver(
+    solver, u_np1, u_n, u_nm1, u_n0_subs = wave_equation_solver(
         c_true, f, dt, V, dx0, quad_rule0
     )
-    u_n0, u_n1 = u_n.subfunctions
-    u_np10, u_np11 = u_np1.subfunctions
+    u_n0 = u_n.subfunctions[0]
+    u_np10 = u_np1.subfunctions[0]
+    u_np1_right = u_np1.subfunctions[1]
+    u_np1_bottom = u_np1.subfunctions[2]
+
     transition_width = 0.1
-    x_sub, _ = SpatialCoordinate(submesh)
-    weight_sub_expr = conditional(
-        x_sub < transition_width,
-        (transition_width - x_sub) / transition_width,
+    # Right boundary weight: ramps 0→1 from x=0.9 to x=1.0
+    x_r, _ = SpatialCoordinate(submesh_right)
+    weight_right_expr = conditional(
+        x_r > 1.0 - transition_width,
+        (x_r - (1.0 - transition_width)) / transition_width,
         0.0,
     )
-    w_sub = Function(V1).interpolate(weight_sub_expr)
+    w_right = Function(V1_right).interpolate(weight_right_expr)
+    # Bottom boundary weight: ramps 0→1 from z=0.1 to z=0.0
+    _, z_b = SpatialCoordinate(submesh_bottom)
+    weight_bottom_expr = conditional(
+        z_b < transition_width,
+        (transition_width - z_b) / transition_width,
+        0.0,
+    )
+    w_bottom = Function(V1_bottom).interpolate(weight_bottom_expr)
+
     w_mesh = Function(V0)
     habc_sum = Function(V0)
-    VTKFile("weight.pvd").write(w_sub)
+    w_bottom_parent = Function(V0)
+    w_bottom_parent.interpolate(w_bottom, allow_missing_dofs=True)
+    habc_bottom = Function(V0)
+    w_total = Function(V0)
+    VTKFile("weight_right.pvd").write(w_right)
+    VTKFile("weight_bottom.pvd").write(w_bottom)
     output_pvd = "acoustic_solution.pvd"
     output_dir = "acoustic_solution"
     output_pvd_sub = "acoustic_solution_submesh.pvd"
@@ -182,10 +217,21 @@ def main():
 
     for step in range(total_steps):
         f.sub(0).assign(ricker_wavelet(step * dt, frequency_peak) * q_s)
-        u_n0_sub.interpolate(u_n0, allow_missing_dofs=True)
+        for u_sub in u_n0_subs:
+            u_sub.interpolate(u_n0, allow_missing_dofs=True)
         solver.solve()
-        habc_sum.interpolate(w_sub * u_np11, allow_missing_dofs=True)
-        w_mesh.interpolate(w_sub, allow_missing_dofs=True)
+
+        # Blend right submesh
+        habc_sum.assign(0.0)
+        habc_sum.interpolate(w_right * u_np1_right, allow_missing_dofs=True)
+        w_mesh.assign(0.0)
+        w_mesh.interpolate(w_right, allow_missing_dofs=True)
+        # Blend bottom submesh (additive, then clamp)
+        habc_bottom.assign(0.0)
+        habc_bottom.interpolate(w_bottom * u_np1_bottom, allow_missing_dofs=True)
+        habc_sum.interpolate(habc_sum + habc_bottom)
+        w_total.interpolate(w_mesh + w_bottom_parent)
+        w_mesh.interpolate(conditional(w_total > 1.0, Constant(1.0), w_total))
         u_np10.interpolate((1.0 - w_mesh) * u_np10 + habc_sum)
 
         if step % divergence_check_every == 0:
@@ -203,7 +249,7 @@ def main():
             print(f"Step {step}/{total_steps}")
             u_plot.interpolate(u_np10)
             output_file.write(u_plot)
-            output_file_sub.write(u_n0_sub)
+            output_file_sub.write(u_n0_subs[0])
 
 
 if __name__ == "__main__":
