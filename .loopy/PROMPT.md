@@ -5,19 +5,19 @@ You are in BUILDING mode. Complete exactly one task from the current plan.
 
 
 ## Situation
-Phase: plan | Iteration: 6 | Rotation: standard
+Phase: plan | Iteration: 11 | Rotation: standard
 
 # Loopy Progress
 
-- Iteration: 5
+- Iteration: 10
 - Current phase: plan
 - Last status: success
-- Last test: skipped @ 2026-03-03 09:52:59
+- Last test: skipped @ 2026-03-03 10:00:11
 - Last error: n/a
-- Last bytes: 25075
+- Last bytes: 25287
 - Rotation pending: no
 - Started at: 2026-03-03T12:47:13.246Z
-- Updated at: 2026-03-03T12:53:06.908Z
+- Updated at: 2026-03-03T13:00:18.907Z
 
 ## History
 - 2026-03-03T12:47:13.246Z iteration 1 success (test: skipped @ 2026-03-03 09:47:04)
@@ -25,12 +25,32 @@ Phase: plan | Iteration: 6 | Rotation: standard
 - 2026-03-03T12:49:02.868Z iteration 3 success (test: skipped @ 2026-03-03 09:48:55)
 - 2026-03-03T12:50:40.904Z iteration 4 success (test: skipped @ 2026-03-03 09:49:34)
 - 2026-03-03T12:53:06.908Z iteration 5 success (test: skipped @ 2026-03-03 09:52:59)
+- 2026-03-03T12:54:29.633Z iteration 6 success (test: skipped @ 2026-03-03 09:54:21)
+- 2026-03-03T12:55:22.675Z iteration 7 success (test: skipped @ 2026-03-03 09:55:14)
+- 2026-03-03T12:56:35.085Z iteration 8 success (test: skipped @ 2026-03-03 09:56:27)
+- 2026-03-03T12:58:43.466Z iteration 9 success (test: skipped @ 2026-03-03 09:58:35)
+- 2026-03-03T13:00:18.907Z iteration 10 success (test: skipped @ 2026-03-03 10:00:11)
 
 
 
 ## Context
 ## Hints
-## Findings from plan
+## Findings from implement
+
+### What was investigated
+- Implemented all five implement-phase tasks: dual submesh construction (right x>0.9, bottom z<0.1), per-submesh Clayton ABC wiring, oriented weight blending with corner clamping, large-domain reference solver, and L2 error computation.
+
+### What was found
+- The solver structure in `wave_equation_solver()` already supported N submeshes via the mixed space `V = V0 * V1_right * V1_bottom` pattern.
+- Weight functions for right (`(x - 0.9)/0.1`) and bottom (`(0.1 - z)/0.1`) boundary strips implemented with additive clamping for corner overlap.
+- Reference solver uses [-2,3]×[-2,3] domain (400×400 mesh, same h=1/80), giving >2.1 unit clearance from source to all boundaries.
+- L2 error computation restricts to [0.2,0.8]² interior to avoid boundary layer artifacts, using `interpolate(u_ref, allow_missing_dofs=True)` for cross-mesh transfer.
+
+### Conclusion
+All implementation tasks are complete. The code should run end-to-end: HABC solve → reference solve → error computation → VTK outputs.
+
+### Recommended next action
+Run `python3 acoustic_solver_submesh.py` to verify no divergence, check that outputs are generated, and confirm the error metric is reported.
 
 ### What was investigated
 - Read `acoustic_solver_submesh.py` (210 lines): current solver structure, submesh creation, Clayton ABC wiring, HABC blending, time loop.

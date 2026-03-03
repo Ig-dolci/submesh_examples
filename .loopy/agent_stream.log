@@ -310,3 +310,351 @@ The code already implements multi-submesh Clayton+Dirichlet handling in `wave_eq
 
 ● Edit .loopy/LOOPY_PLAN.md (+1 -1)
 
+● Commit plan update
+  $ cd /Users/ddolci/dev_code/submesh_examples && git add -A && git commit -m "loopy: chore mark
+  wave_equation_solver multi-submesh task as complete
+
+  The wave_equation_solver() already iterates over all submeshes in the mixed
+  space (lines 93-114), creating independent V_sub, c_sub, u_sub, interface...
+  └ 7 lines...
+
+Task 2 in the implement phase is marked complete. The `wave_equation_solver()` function already handles multiple submeshes via its loop at lines 93-114, building independent Clayton+Dirichlet terms for each submesh derived from the mixed function space `V`.
+
+```loopy_test_report
+{ "status": "skipped", "command": "python3 acoustic_solver_submesh.py", "summary": "Test skipped - only marking already-implemented task as complete, no code changes", "evidence": "wave_equation_solver lines 93-114 already iterate over len(V)-1 submeshes with independent V_sub, c_sub, u_sub, DirichletBC, and Clayton surface integrals" }
+```
+
+
+Total usage est:        3 Premium requests
+API time spent:         1m 2s
+Total session time:     1m 8s
+Total code changes:     +1 -1
+Breakdown by AI model:
+ claude-opus-4.6         163.2k in, 2.6k out, 110.9k cached (Est. 3 Premium requests)
+
+
+===== Iteration 7 @ 2026-03-03T12:54:34.675Z =====
+$ copilot --allow-all
+
+
+
+
+
+● List directory .loopy
+  └ 12 files found
+
+● Read .loopy/PRD.md
+  └ 131 lines read
+
+● Read .loopy/LOOPY_PLAN.md
+  └ 91 lines read
+
+● Read acoustic_solver_submesh.py
+  └ 256 lines read
+
+The plan phase has its only task already checked `[x]`. The implement phase has tasks 1-2 checked and tasks 3-5 remaining. The plan phase is complete.
+
+```loopy_test_report
+{ "status": "skipped", "command": "n/a", "summary": "Plan phase complete - all tasks checked, no tests required", "evidence": "Plan phase has stop_on: all_checked, single task is [x]" }
+```
+
+
+Total usage est:        3 Premium requests
+API time spent:         32s
+Total session time:     38s
+Total code changes:     +0 -0
+Breakdown by AI model:
+ claude-opus-4.6         71.1k in, 1.2k out, 11.4k cached (Est. 3 Premium requests)
+
+
+===== Iteration 8 @ 2026-03-03T12:55:27.736Z =====
+$ copilot --allow-all
+
+
+
+
+
+● Read current plan
+  $ cat .loopy/plan.md 2>/dev/null | head -200
+  └ 1 line...
+
+● Read PRD
+  $ cat .loopy/PRD.md 2>/dev/null | head -200
+  └ 132 lines...
+
+● Read hints
+  $ cat .loopy/hints.md 2>/dev/null
+  └ 23 lines...
+
+● Read full plan
+  $ cat .loopy/plan.md
+  └ 2 lines...
+
+● Find loopy files
+  $ find .loopy -type f 2>/dev/null | head -20
+  └ 13 lines...
+
+● Read LOOPY_PLAN.md
+  $ cat .loopy/LOOPY_PLAN.md
+  └ 92 lines...
+
+● Read acoustic_solver_submesh.py
+  └ 256 lines read
+
+The HABC blending for two submeshes is already implemented in the current code (lines 179-235). The right weight ramps from x=0.9→1.0, bottom weight ramps from z=0.1→0.0, and corner overlap is clamped via `conditional(w_total > 1.0, 1.0, w_total)`.
+
+● Edit .loopy/LOOPY_PLAN.md (+1 -1)
+
+Task marked as done — the HABC blending for right and bottom submeshes with corner clamping was already implemented in prior iterations (lines 179-235 of `acoustic_solver_submesh.py`).
+
+```loopy_test_report
+{ "status": "skipped", "command": "python3 acoustic_solver_submesh.py", "summary": "Test skipped: marking already-implemented blending task as complete, no code changes made", "evidence": "Lines 179-235 of acoustic_solver_submesh.py already contain correct dual-submesh blending with right weight (x_r - 0.9)/0.1, bottom weight (0.1 - z_b)/0.1, and conditional clamping for corner overlap" }
+```
+
+
+Total usage est:        3 Premium requests
+API time spent:         50s
+Total session time:     57s
+Total code changes:     +1 -1
+Breakdown by AI model:
+ claude-opus-4.6         184.4k in, 2.2k out, 154.6k cached (Est. 3 Premium requests)
+
+
+===== Iteration 9 @ 2026-03-03T12:56:40.140Z =====
+$ copilot --allow-all
+
+
+
+
+
+● Read current plan
+  $ cat /Users/ddolci/dev_code/submesh_examples/.loopy/plan.md 2>/dev/null
+  └ 1 line...
+
+● Read hints
+  $ cat /Users/ddolci/dev_code/submesh_examples/.loopy/hints.md 2>/dev/null
+  └ 23 lines...
+
+● Read PRD
+  $ cat /Users/ddolci/dev_code/submesh_examples/.loopy/PRD.md 2>/dev/null | head -200
+  └ 132 lines...
+
+● Read loopy plan
+  $ cat /Users/ddolci/dev_code/submesh_examples/.loopy/plan.md 2>/dev/null
+  └ 1 line...
+
+● List loopy directory
+  $ ls -la /Users/ddolci/dev_code/submesh_examples/.loopy/ 2>/dev/null
+  └ 16 lines...
+
+● Read .loopy/LOOPY_PLAN.md
+  └ 91 lines read
+
+● Read acoustic_solver_submesh.py
+  └ 256 lines read
+
+Now I need to implement task 4: the reference solver function. Let me add it to the file.
+
+● Edit acoustic_solver_submesh.py (+58)
+
+Now update `main()` to call the reference solver after the time loop:
+
+● Read acoustic_solver_submesh.py lines 286-310
+  └ 25 lines read
+
+● Read acoustic_solver_submesh.py lines 305-315
+  └ 10 lines read
+
+● Edit acoustic_solver_submesh.py (+8)
+
+Now update the plan to mark task 4 as done:
+
+● Edit .loopy/LOOPY_PLAN.md (+1 -1)
+
+Now let me verify the file is syntactically valid:
+
+● Check syntax
+  $ cd /Users/ddolci/dev_code/submesh_examples && python3 -c "import ast;
+  ast.parse(open('acoustic_solver_submesh.py').read()); print('Syntax OK')"
+  └ 2 lines...
+
+The `reference_solver()` function has been added. It creates a [-2,3]×[-2,3] domain (400×400 elements, same h=1/80), runs the same wave equation with identical velocity model and source but no ABC/submeshes, and returns the final solution. The main function now calls it after the HABC time loop and writes VTK output.
+
+```loopy_test_report
+{ "status": "skipped", "command": "python3 acoustic_solver_submesh.py", "summary": "Test skipped - not all implement phase tasks are checked yet (task 5 remains)", "evidence": "Task 5 (L2 error computation) still unchecked in implement phase" }
+```
+
+
+Total usage est:        3 Premium requests
+API time spent:         1m 46s
+Total session time:     1m 54s
+Total code changes:     +67 -1
+Breakdown by AI model:
+ claude-opus-4.6         366.9k in, 5.1k out, 325.7k cached (Est. 3 Premium requests)
+
+
+===== Iteration 10 @ 2026-03-03T12:58:48.535Z =====
+$ copilot --allow-all
+
+
+
+
+
+● Read current plan
+  $ cat .loopy/plan.md 2>/dev/null | head -120
+  └ 1 line...
+
+● Read hints file
+  $ cat .loopy/hints.md 2>/dev/null
+  └ 23 lines...
+
+● Read acoustic_solver_submesh.py
+  └ 322 lines read
+
+● Read PRD
+  $ cat .loopy/PRD.md 2>/dev/null
+  └ 132 lines...
+
+● Read loopy plan file
+  $ cat .loopy/plan.md 2>/dev/null
+  └ 1 line...
+
+● List loopy directory
+  $ ls .loopy/ 2>/dev/null
+  └ 4 lines...
+
+● Read loopy plan
+  $ cat .loopy/LOOPY_PLAN.md
+  └ 92 lines...
+
+The plan phase is complete. The implement phase has one remaining unchecked task: "Add L2 error computation". Let me implement it.
+
+● Read acoustic_solver_submesh.py lines 310-323
+  └ 13 lines read
+
+● Edit acoustic_solver_submesh.py (+18)
+
+Now mark the task as done in the plan:
+
+● Edit .loopy/LOOPY_PLAN.md (+1 -1)
+
+This is the last task in the implement phase. Let me rewrite the verify phase tasks based on findings and add findings to hints.md:
+
+● Edit .loopy/hints.md (+16 -1)
+
+Now rewrite the verify phase tasks based on findings:
+
+● Edit .loopy/LOOPY_PLAN.md (+3 -3)
+
+● Review changes
+  $ cd /Users/ddolci/dev_code/submesh_examples && git --no-pager diff acoustic_solver_submesh.py |
+  head -60
+  └ 61 lines...
+
+The changes look correct. The L2 error computation interpolates the reference solution onto the HABC mesh, computes the difference, restricts to the [0.2,0.8]² interior, and reports both absolute and relative L2 errors.
+
+```loopy_test_report
+{ "status": "skipped", "command": "python3 acoustic_solver_submesh.py", "summary": "Test skipped - implement phase complete, verify phase will run the test", "evidence": "All implement phase tasks checked [x]. L2 error computation added to acoustic_solver_submesh.py lines 318-335." }
+```
+
+
+Total usage est:        3 Premium requests
+API time spent:         1m 12s
+Total session time:     1m 21s
+Total code changes:     +38 -5
+Breakdown by AI model:
+ claude-opus-4.6         369.7k in, 3.2k out, 330.6k cached (Est. 3 Premium requests)
+
+
+===== Iteration 11 @ 2026-03-03T13:00:23.973Z =====
+$ copilot --allow-all
+
+
+
+
+
+● Read hints file
+  $ cat /Users/ddolci/dev_code/submesh_examples/.loopy/hints.md 2>/dev/null
+  └ 38 lines...
+
+● Read current plan
+  $ cat /Users/ddolci/dev_code/submesh_examples/.loopy/plan.md 2>/dev/null | head -100
+  └ 1 line...
+
+● Find plan files
+  $ find /Users/ddolci/dev_code/submesh_examples/.loopy -type f -name "*.md" | head -20 && echo
+  "---" && cat /Users/ddolci/dev_code/submesh_examples/.loopy/LOOPY_PLAN.md 2>/dev/null | head -120
+  └ 99 lines...
+
+The plan and implement phases are complete. I need to work on the verify phase. Let me run the solver.
+
+● Run acoustic solver
+  $ cd /Users/ddolci/dev_code/submesh_examples && python3 acoustic_solver_submesh.py 2>&1
+  └ 48 lines...
+
+The solver diverges at step 275. Let me examine the code to understand the issue.
+
+● Read acoustic_solver_submesh.py
+  └ 340 lines read
+
+● Check solver intersect_measures
+  $ cd /Users/ddolci/dev_code/submesh_examples && grep -n "intersect_measures" test_submesh_solve.py
+  └ 23 lines...
+
+● Check intersect_measures usage
+  $ cd /Users/ddolci/dev_code/submesh_examples && grep -n "intersect_measures" ruben_test.py
+  test_submesh_*.py
+  └ 46 lines...
+
+● Read test_submesh_solve.py lines 430-480
+  └ 51 lines read
+
+● Read ruben_test.py
+  └ 90 lines read
+
+Found the bug: submesh DOFs have no volume integral (wave equation), only the Clayton surface term. Interior submesh DOFs have zero matrix rows. Need to add wave equation volume terms for each submesh.
+
+● Edit acoustic_solver_submesh.py (+15 -2)
+
+Now I also need to fix the corner weight normalization issue. Let me also update the blending logic:
+
+● Read acoustic_solver_submesh.py lines 280-310
+  └ 31 lines read
+
+● Edit acoustic_solver_submesh.py (+3 -1)
+
+Now let me also update the submesh interface BC update in the time loop - we need to update submesh DOFs from the parent state for the volume terms too:
+
+● Read acoustic_solver_submesh.py lines 70-135
+  └ 66 lines read
+
+Now let me run the solver again to see if the divergence is fixed.
+
+● Run solver after fix
+  $ cd /Users/ddolci/dev_code/submesh_examples && python3 acoustic_solver_submesh.py 2>&1
+  └ 74 lines...
+
+Solver completed all 501 steps. Let me verify the output files exist.
+
+● Check output files
+  $ cd /Users/ddolci/dev_code/submesh_examples && ls -la *.pvd weight_*.pvd error_field.pvd
+  reference_solution.pvd acoustic_solution.pvd 2>/dev/null
+  └ 12 lines...
+
+All output files exist. Now let me update the plan to mark the verify phase tasks and commit.
+
+● Read .loopy/LOOPY_PLAN.md lines 92-100
+
+● Check plan length
+  $ cd /Users/ddolci/dev_code/submesh_examples && wc -l .loopy/LOOPY_PLAN.md
+  └ 2 lines...
+
+● Read .loopy/LOOPY_PLAN.md lines 82-91
+  └ 10 lines read
+
+Mark the first verify task as done:
+
+● Edit .loopy/LOOPY_PLAN.md (+1 -1)
+
+Now let me commit the fix and provide the test report.
+

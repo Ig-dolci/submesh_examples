@@ -1,6 +1,21 @@
 # Loopy Hints
 
-## Findings from plan
+## Findings from implement
+
+### What was investigated
+- Implemented all five implement-phase tasks: dual submesh construction (right x>0.9, bottom z<0.1), per-submesh Clayton ABC wiring, oriented weight blending with corner clamping, large-domain reference solver, and L2 error computation.
+
+### What was found
+- The solver structure in `wave_equation_solver()` already supported N submeshes via the mixed space `V = V0 * V1_right * V1_bottom` pattern.
+- Weight functions for right (`(x - 0.9)/0.1`) and bottom (`(0.1 - z)/0.1`) boundary strips implemented with additive clamping for corner overlap.
+- Reference solver uses [-2,3]×[-2,3] domain (400×400 mesh, same h=1/80), giving >2.1 unit clearance from source to all boundaries.
+- L2 error computation restricts to [0.2,0.8]² interior to avoid boundary layer artifacts, using `interpolate(u_ref, allow_missing_dofs=True)` for cross-mesh transfer.
+
+### Conclusion
+All implementation tasks are complete. The code should run end-to-end: HABC solve → reference solve → error computation → VTK outputs.
+
+### Recommended next action
+Run `python3 acoustic_solver_submesh.py` to verify no divergence, check that outputs are generated, and confirm the error metric is reported.
 
 ### What was investigated
 - Read `acoustic_solver_submesh.py` (210 lines): current solver structure, submesh creation, Clayton ABC wiring, HABC blending, time loop.
