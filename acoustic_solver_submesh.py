@@ -83,24 +83,31 @@ def wave_equation_solver(c, source_function, dt, V, dx0, quad_rule0):
     c_sub = Function(V1).interpolate(c, allow_missing_dofs=True)
     u_n0_sub = Function(V1).interpolate(u_n0, allow_missing_dofs=True)
     m = 1 / (c * c)
-    time_term = m * (u0 - 2.0 * u_n0 + u_nm10) / Constant(dt**2) * v0 * dx0(scheme=quad_rule0)
-    a = dot(grad(u_n0), grad(v0)) * dx0(scheme=quad_rule0)
-    F = a + time_term
+    dt_const = Constant(dt)
+    dt2_const = Constant(dt**2)
+    dx1 = Measure("dx", domain=submesh, intersect_measures=(Measure("dx", mesh),))
+    ds1_int = Measure("ds", domain=submesh, intersect_measures=(Measure("dS", mesh),))
+
+    wave_mesh = m * (u0 - 2.0 * u_n0 + u_nm10) / dt2_const * v0 * dx0 + dot(grad(u0), grad(v0)) * dx0
+    one_way_sub = (1 / c_sub) * (u1 - u_n1) / dt_const * v1 * dx1 + dot(grad(u1), grad(v1)) * dx1
+    F = wave_mesh + one_way_sub
+
     ds1_ext = Measure("ds", domain=submesh, intersect_measures=(Measure("ds", mesh),))
-    u_sub = Function(V1).interpolate(u_n0, allow_missing_dofs=True)
     interface_markers = get_interface_markers(mesh, submesh)
     if not interface_markers:
         raise ValueError("No interface markers found between parent mesh and submesh")
-    interface_dirichlet = DirichletBC(V1, u_sub, interface_markers)
-    clayton_outer = (1 / c_sub) * ((u_n1 - u_nm1_1) / dt) * v1
+    eq_interface = inner(u1 - u0('+'), v1) * ds1_int(interface_markers) == inner(Constant(0.0), v1) * ds1_int(interface_markers)
+    interface_bc = EquationBC(eq_interface, u_np1, interface_markers, V=V.sub(1))
+
+    clayton_outer = (1 / c_sub) * ((u1 - u_n1) / dt_const) * v1
     exterior_markers = get_shared_exterior_markers(mesh, submesh)
     for marker in exterior_markers:
         F += clayton_outer * ds1_ext(marker)
 
-    bcs = [interface_dirichlet]
+    bcs = [interface_bc]
 
     lin_var = LinearVariationalProblem(lhs(F), rhs(F) + source_function, u_np1, bcs=bcs)
-    solver_parameters = {"mat_type": "matfree", "ksp_type": "preonly", "pc_type": "jacobi"}
+    solver_parameters = {"mat_type": "aij", "ksp_type": "gmres", "pc_type": "bjacobi", "ksp_rtol": 1.0e-8}
     solver = LinearVariationalSolver(lin_var, solver_parameters=solver_parameters)
     return solver, u_np1, u_n, u_nm1, u_n0_sub
 

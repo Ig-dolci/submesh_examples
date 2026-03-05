@@ -36,7 +36,7 @@ def get_interface_markers(parent_mesh, child_mesh):
     return tuple(sorted(child_exterior - parent_exterior))
 
 
-def solve_submesh_projection(submesh, velocity, derivative_axis):
+def solve_submesh_projection(mesh, submesh, velocity, derivative_axis):
     V = FunctionSpace(submesh, "KMV", 1)
     solution = Function(V)
     velocity_sub = Function(V)
@@ -45,7 +45,7 @@ def solve_submesh_projection(submesh, velocity, derivative_axis):
     interface_markers = get_interface_markers(velocity.ufl_domain(), submesh)
     if not interface_markers:
         raise ValueError("No interface markers found between parent mesh and submesh")
-
+    dx = Measure("dx", domain=mesh)
     dx_sub = Measure("dx", domain=submesh, intersect_measures=(Measure("dx", velocity.ufl_domain()),))
     u = TrialFunction(V)
     v = TestFunction(V)
