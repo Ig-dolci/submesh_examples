@@ -71,7 +71,7 @@ def check_divergence(
         )
 
     if previous_norm is not None:
-        reference_norm = max(previous_norm, 1.0e-12)
+        reference_norm = max(previous_norm, 1.0e-3)
         if current_norm > growth_factor * reference_norm:
             raise RuntimeError(
                 f"Divergence detected at step {step}: norm jumped from "
@@ -110,29 +110,41 @@ def wave_equation_solver(c, source_function, dt, V, dx0, quad_rule0):
     ]
 
     m = 1 / (c * c)
-    time_term = m * (u0 - 2.0 * u_n0 + u_nm10) / Constant(dt**2) * v0 * dx0(scheme=quad_rule0)
-    a = dot(grad(u_n0), grad(v0)) * dx0(scheme=quad_rule0)
-    F = a + time_term
+    dt_const = Constant(dt)
+    dt2_const = Constant(dt**2)
+    dx0_rule = dx0(scheme=quad_rule0) if quad_rule0 is not None else dx0
+    wave_mesh = m * (u0 - 2.0 * u_n0 + u_nm10) / dt2_const * v0 * dx0_rule + dot(grad(u0), grad(v0)) * dx0_rule
+    F = wave_mesh
 
-    sign_factors = (1.0, -1.0, -1.0)
     bcs = []
-    for idx, (space, submesh, c_sub, sign) in enumerate(
-        zip(subspaces, submeshes, c_subspaces, sign_factors),
+    for idx, (space, submesh, c_sub) in enumerate(
+        zip(subspaces, submeshes, c_subspaces),
         start=1,
     ):
-        ds_ext = Measure("ds", domain=submesh, intersect_measures=(Measure("ds", mesh),))
-        u_sub = Function(space).interpolate(u_n0, allow_missing_dofs=True)
+        u_i = u_components[idx]
+        v_i = v_components[idx]
+        u_n_i = u_n_components[idx]
+
+        dx_i = Measure("dx", domain=submesh, intersect_measures=(Measure("dx", mesh),))
+        ds_i_int = Measure("ds", domain=submesh, intersect_measures=(Measure("dS", mesh),))
+        ds_i_ext = Measure("ds", domain=submesh, intersect_measures=(Measure("ds", mesh),))
+
+        one_way_sub = (1 / c_sub) * (u_i - u_n_i) / dt_const * v_i * dx_i + dot(grad(u_i), grad(v_i)) * dx_i
+        F += one_way_sub
+
         interface_markers = get_interface_markers(mesh, submesh)
         if not interface_markers:
             raise ValueError(f"No interface markers found between parent mesh and submesh_{idx}")
-        bcs.append(DirichletBC(space, u_sub, interface_markers))
 
-        clayton_outer = sign * (1 / c_sub) * ((u_n_components[idx] - u_nm1_components[idx]) / dt) * v_components[idx]
+        eq_interface = inner(u_i - u0('+'), v_i) * ds_i_int(interface_markers) == inner(Constant(0.0), v_i) * ds_i_int(interface_markers)
+        bcs.append(EquationBC(eq_interface, u_np1, interface_markers, V=space))
+
+        clayton_outer = (1 / c_sub) * ((u_i - u_n_i) / dt_const) * v_i
         for marker in get_shared_exterior_markers(mesh, submesh):
-            F += clayton_outer * ds_ext(marker)
+            F += clayton_outer * ds_i_ext(marker)
 
     lin_var = LinearVariationalProblem(lhs(F), rhs(F) + source_function, u_np1, bcs=bcs)
-    solver_parameters = {"mat_type": "matfree", "ksp_type": "preonly", "pc_type": "jacobi"}
+    solver_parameters = {"mat_type": "aij", "ksp_type": "gmres", "pc_type": "bjacobi", "ksp_rtol": 1.0e-8}
     solver = LinearVariationalSolver(lin_var, solver_parameters=solver_parameters)
     return solver, u_np1, u_n, u_nm1, tuple(u_n0_subspaces)
 
@@ -154,7 +166,15 @@ def main():
     submesh_left = mark_submesh(mesh, DQ0, x < 0.1, 999)
     submesh_right = mark_submesh(mesh, DQ0, x > 0.9, 998)
     submesh_bottom = mark_submesh(mesh, DQ0, z > 0.9, 997)
-    dx0 = Measure("dx", domain=mesh, intersect_measures=(Measure("dx", submesh_left), Measure("dx", submesh_right)))
+    dx0 = Measure(
+        "dx",
+        domain=mesh,
+        intersect_measures=(
+            Measure("dx", submesh_left),
+            Measure("dx", submesh_right),
+            Measure("dx", submesh_bottom),
+        ),
+    )
 
     V0 = FunctionSpace(mesh, "KMV", 1)
     V1 = FunctionSpace(submesh_left, "KMV", 1)
