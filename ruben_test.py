@@ -79,8 +79,8 @@ def main():
     velocity = make_layered_velocity(V0, z)
     VTKFile("velocity.pvd").write(velocity)
 
-    velocity1 = solve_submesh_projection(submesh, velocity, derivative_axis=0)
-    velocity2 = solve_submesh_projection(submesh1, velocity, derivative_axis=1)
+    velocity1 = solve_submesh_projection(mesh, submesh, velocity, derivative_axis=0)
+    velocity2 = solve_submesh_projection(mesh, submesh1, velocity, derivative_axis=1)
 
     VTKFile("velocity_submesh.pvd").write(velocity1)
     VTKFile("velocity_submesh1.pvd").write(velocity2)

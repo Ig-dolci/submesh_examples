@@ -1,18 +1,6 @@
-import os
-import shutil
-from dataclasses import dataclass
-
 import finat
 import numpy as np
 from firedrake import *
-from firedrake.adjoint import *
-
-
-@dataclass(frozen=True)
-class DivergenceConfig:
-    check_every: int = 5
-    growth_factor: float = 50.0
-    abs_limit: float = 1.0e6
 
 
 def ricker_wavelet(t, fs, amp=1.0):
@@ -28,12 +16,6 @@ def get_interface_markers(parent_mesh, child_mesh):
     return tuple(sorted(child_exterior - parent_exterior))
 
 
-def get_shared_exterior_markers(parent_mesh, child_mesh):
-    parent_exterior = {int(marker) for marker in parent_mesh.exterior_facets.unique_markers}
-    child_exterior = tuple(int(marker) for marker in child_mesh.exterior_facets.unique_markers)
-    return tuple(marker for marker in child_exterior if marker in parent_exterior)
-
-
 def get_submesh_interface_markers(parent_mesh, mesh_a, mesh_b):
     parent_exterior = {int(marker) for marker in parent_mesh.exterior_facets.unique_markers}
     a_exterior = {int(marker) for marker in mesh_a.exterior_facets.unique_markers}
@@ -41,51 +23,11 @@ def get_submesh_interface_markers(parent_mesh, mesh_a, mesh_b):
     return tuple(sorted((a_exterior & b_exterior) - parent_exterior))
 
 
-def cleanup_outputs(*output_files, output_dir=None):
-    for output_file in output_files:
-        if os.path.exists(output_file):
-            os.remove(output_file)
-    if output_dir and os.path.isdir(output_dir):
-        shutil.rmtree(output_dir)
-
 
 def mark_submesh(mesh, dq0, indicator_expr, marker):
     indicator = Function(dq0).interpolate(conditional(indicator_expr, 1, 0))
     mesh.mark_entities(indicator, marker)
     return Submesh(mesh, 2, marker)
-
-
-def check_divergence(
-    solution,
-    step,
-    previous_norm,
-    growth_factor,
-    abs_limit,
-):
-    current_norm = norm(solution)
-    current_max_abs = float(np.max(np.abs(solution.dat.data_ro)))
-
-    if not np.isfinite(current_norm) or not np.isfinite(current_max_abs):
-        raise RuntimeError(
-            f"Divergence detected at step {step}: non-finite solution values "
-            f"(norm={current_norm}, max_abs={current_max_abs})."
-        )
-
-    if current_max_abs > abs_limit:
-        raise RuntimeError(
-            f"Divergence detected at step {step}: max_abs={current_max_abs} "
-            f"exceeds limit {abs_limit}."
-        )
-
-    if previous_norm is not None:
-        reference_norm = max(previous_norm, 1.0e-3)
-        if current_norm > growth_factor * reference_norm:
-            raise RuntimeError(
-                f"Divergence detected at step {step}: norm jumped from "
-                f"{previous_norm} to {current_norm}."
-            )
-
-    return current_norm
 
 
 def wave_equation_solver(c, source_function, dt, V, dx0, quad_rule0):
@@ -120,8 +62,7 @@ def wave_equation_solver(c, source_function, dt, V, dx0, quad_rule0):
     dt_const = Constant(dt)
     dt2_const = Constant(dt**2)
     dx0_rule = dx0(scheme=quad_rule0) if quad_rule0 is not None else dx0
-    wave_mesh = m * (u0 - 2.0 * u_n0 + u_nm10) / dt2_const * v0 * dx0_rule + dot(grad(u0), grad(v0)) * dx0_rule
-    F = wave_mesh
+    F = m * (u0 - 2.0 * u_n0 + u_nm10) / dt2_const * v0 * dx0_rule + dot(grad(u0), grad(v0)) * dx0_rule
 
     bcs = []
     direction_signs = (-1.0, 1.0, 1.0)
@@ -138,7 +79,6 @@ def wave_equation_solver(c, source_function, dt, V, dx0, quad_rule0):
 
         dx_i = Measure("dx", domain=submesh, intersect_measures=(Measure("dx", mesh),))
         ds_i_int = Measure("ds", domain=submesh, intersect_measures=(Measure("dS", mesh),))
-        ds_i_ext = Measure("ds", domain=submesh, intersect_measures=(Measure("ds", mesh),))
 
         one_way_sub = (
             (1 / c_sub) * (u_i - u_n_i) / dt_const * v_i * dx_i
@@ -154,55 +94,21 @@ def wave_equation_solver(c, source_function, dt, V, dx0, quad_rule0):
         bcs.append(EquationBC(eq_interface, u_np1, interface_markers, V=space))
 
 
-    submesh_left, submesh_right, submesh_bottom = submeshes
-    u_left = u_components[1]
-    u_right = u_components[2]
-    u_bottom = u_components[3]
-    v_bottom = v_components[3]
-    bottom_space = subspaces[2]
-
     lin_var = LinearVariationalProblem(lhs(F), rhs(F) + source_function, u_np1, bcs=bcs)
-    solver_parameters = {"mat_type": "aij", "ksp_type": "gmres", "pc_type": "bjacobi", "ksp_rtol": 1.0e-8}
+    solver_parameters = {"mat_type": "matfree", "ksp_type": "gmres", "pc_type": "bjacobi", "ksp_rtol": 1.0e-8}
     solver = LinearVariationalSolver(lin_var, solver_parameters=solver_parameters)
+
     return solver, u_np1, u_n, u_nm1, tuple(u_n0_subspaces)
-
-
-def wave_equation_solver_no_submesh(c, source_function, dt, V0, quad_rule0):
-    u = TrialFunction(V0)
-    v = TestFunction(V0)
-
-    u_n = Function(V0)
-    u_nm1 = Function(V0)
-    u_np1 = Function(V0)
-
-    m = 1 / (c * c)
-    dt2_const = Constant(dt**2)
-    dx0_rule = dx(scheme=quad_rule0) if quad_rule0 is not None else dx
-    wave_form = m * (u - 2.0 * u_n + u_nm1) / dt2_const * v * dx0_rule + dot(grad(u), grad(v)) * dx0_rule
-
-    lin_var = LinearVariationalProblem(lhs(wave_form), rhs(wave_form) + source_function, u_np1)
-    solver_parameters = {
-        "mat_type": "matfree",
-        "ksp_type": "gmres",
-        "pc_type": "bjacobi",
-        "ksp_rtol": 1.0e-8,
-    }
-    # solver_parameters = {"mat_type": "matfree", "ksp_type": "preonly", "pc_type": "jacobi"}
-    solver = LinearVariationalSolver(lin_var, solver_parameters=solver_parameters)
-    return solver, u_np1, u_n, u_nm1
 
 
 def main():
     ensemble_size = 1
     my_ensemble = Ensemble(COMM_WORLD, ensemble_size)
-
-    num_sources = my_ensemble.ensemble_comm.size
     source_number = my_ensemble.ensemble_comm.rank
 
     dt = 0.001
-    final_time = 1.2
-    nx, ny = 120, 120
-    boundary_layers = 8.0
+    final_time = 1.0
+    nx, ny = 80, 80
     boundary_distance = Constant(0.2)
     domain_length = 1.5
     mesh = SquareMesh(nx, ny, domain_length, comm=my_ensemble.comm)
@@ -260,9 +166,7 @@ def main():
     solver, u_np1, u_n, u_nm1, u_n0_subspaces = wave_equation_solver(
         c_true, f, dt, V, dx0, quad_rule0
     )
-    solver_no_submesh, u_np1_no_submesh, u_n_no_submesh, u_nm1_no_submesh = (
-        wave_equation_solver_no_submesh(c_true, f_no_submesh, dt, V0, quad_rule0)
-    )
+
     u_n0, _, _, _ = u_n.subfunctions
     u_np10, u_np11, u_np12, u_np13 = u_np1.subfunctions
     transition_width = boundary_distance
@@ -295,52 +199,10 @@ def main():
     w_mesh_spaces = [Function(V0) for _ in range(3)]
     habc_sums = [Function(V0) for _ in range(3)]
     submesh_components = [u_np11, u_np12, u_np13]
-    VTKFile("weight.pvd").write(w_subspaces[0])
-    output_pvd = "acoustic_solution.pvd"
-    output_dir = "acoustic_solution"
-    output_pvd_no_submesh = "acoustic_solution_no_submesh.pvd"
-    output_dir_no_submesh = "acoustic_solution_no_submesh"
-    output_pvd_difference = "acoustic_solution_difference.pvd"
-    output_dir_difference = "acoustic_solution_difference"
-    output_pvd_sub_left = "acoustic_solution_submesh_left.pvd"
-    output_pvd_sub_right = "acoustic_solution_submesh_right.pvd"
-    output_pvd_sub_bottom = "acoustic_solution_submesh_bottom.pvd"
-    cleanup_outputs(
-        output_pvd,
-        output_pvd_sub_left,
-        output_pvd_sub_right,
-        output_pvd_sub_bottom,
-        output_pvd_no_submesh,
-        output_pvd_difference,
-        output_dir=output_dir,
-    )
-    cleanup_outputs(output_pvd_no_submesh, output_dir=output_dir_no_submesh)
-    cleanup_outputs(output_pvd_difference, output_dir=output_dir_difference)
 
-    output_file = VTKFile(output_pvd)
-    output_file_no_submesh = VTKFile(output_pvd_no_submesh)
-    output_file_difference = VTKFile(output_pvd_difference)
-    output_file_sub_left = VTKFile(output_pvd_sub_left)
-    output_file_sub_right = VTKFile(output_pvd_sub_right)
-    output_file_sub_bottom = VTKFile(output_pvd_sub_bottom)
-    submesh_output_files = [
-        output_file_sub_left,
-        output_file_sub_right,
-        output_file_sub_bottom,
-    ]
-
-    u_plot_submesh = Function(V0, name="acoustic_pressure_submesh")
-    u_plot_no_submesh = Function(V0, name="acoustic_pressure_no_submesh")
-    u_plot_difference = Function(V0, name="acoustic_pressure_difference")
-    difference_kmv = Function(V0)
-    divergence_config = DivergenceConfig()
-    previous_norm_submesh = None
-    previous_norm_no_submesh = None
     receiver_mesh = VertexOnlyMesh(mesh, np.array([(0.75, 0.75)]))
     V_r = FunctionSpace(receiver_mesh, "DG", 0)
-    receiver_no_submesh = Function(V_r)
     receiver_submesh = Function(V_r)
-    rec_array = []
     rec_array_submesh = []
     for step in range(total_steps):
         source_value = ricker_wavelet(step * dt, frequency_peak)
@@ -351,7 +213,6 @@ def main():
             u_n0_sub.interpolate(u_n0, allow_missing_dofs=True)
 
         solver.solve()
-        solver_no_submesh.solve()
 
         for w_sub, u_np_sub, habc_sum, w_mesh in zip(
             w_subspaces,
@@ -363,60 +224,17 @@ def main():
             w_mesh.interpolate(w_sub, allow_missing_dofs=True)
             u_np10.interpolate((1.0 - w_mesh) * u_np10 + habc_sum)
 
-        receiver_no_submesh.interpolate(u_np1_no_submesh)
         receiver_submesh.interpolate(u_np10)
-        rec_array.append(float(receiver_no_submesh.dat.data_ro[0]))
         rec_array_submesh.append(float(receiver_submesh.dat.data_ro[0]))
-        if step % divergence_config.check_every == 0:
-            previous_norm_submesh = check_divergence(
-                u_np10,
-                step,
-                previous_norm_submesh,
-                growth_factor=divergence_config.growth_factor,
-                abs_limit=divergence_config.abs_limit,
-            )
-            previous_norm_no_submesh = check_divergence(
-                u_np1_no_submesh,
-                step,
-                previous_norm_no_submesh,
-                growth_factor=divergence_config.growth_factor,
-                abs_limit=divergence_config.abs_limit,
-            )
-            difference_kmv.interpolate(u_np10 - u_np1_no_submesh)
-            diff_norm = norm(difference_kmv)
-            reference_norm = max(norm(u_np1_no_submesh), 1.0e-12)
-            relative_diff = diff_norm / reference_norm
-            print(
-                f"Comparison step {step}: L2(diff)={diff_norm:.6e}, "
-                f"relative={relative_diff:.6e}"
-            )
-
+        
         u_nm1.assign(u_n)
         u_n.assign(u_np1)
-        u_nm1_no_submesh.assign(u_n_no_submesh)
-        u_n_no_submesh.assign(u_np1_no_submesh)
 
-        if step % 10 == 0:
-            print(f"Step {step}/{total_steps}")
-            u_plot_submesh.interpolate(u_np10)
-            u_plot_no_submesh.interpolate(u_np1_no_submesh)
-            u_plot_difference.interpolate(u_np10 - u_np1_no_submesh)
-            output_file.write(u_plot_submesh)
-            output_file_no_submesh.write(u_plot_no_submesh)
-            output_file_difference.write(u_plot_difference)
+        if step % 100 == 0:
+            print(f"Step {step}/{total_steps}, time={step*dt:.3f})")
 
-            for output_sub_file, u_n0_sub in zip(submesh_output_files, u_n0_subspaces):
-                output_sub_file.write(u_n0_sub)
-        # plot receivers
-    import matplotlib.pyplot as plt
-    plt.figure()
-    plt.plot(rec_array, label="No Submesh")
-    plt.plot(rec_array_submesh, label="Submesh")
-    plt.xlabel("Time Step")
-    plt.ylabel("Receiver Value")
-    plt.legend()
-    plt.show()
-    
+    VTKFile("solution.pvd").write(u_np1.sub(0))
+
 
 if __name__ == "__main__":
     main()
