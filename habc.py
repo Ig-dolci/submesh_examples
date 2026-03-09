@@ -8,7 +8,7 @@ the parent field every time step.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+
 from typing import Any
 
 import firedrake as fd
@@ -16,7 +16,6 @@ import finat
 import numpy as np
 
 
-@dataclass(frozen=True)
 class SimulationConfig:
     """Configuration for the HABC simulation."""
 
